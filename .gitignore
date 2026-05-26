@@ -1,0 +1,11 @@
+.venv/
+.idea/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+.env
+.env.*
+
+runs/
+dataset/**/labels.cache

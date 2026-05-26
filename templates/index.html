@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Intelligent Vision System</title>
+    <link rel="icon" href="{{ url_for('static', filename='logo.png') }}" type="image/png">
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles to enhance the design */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #e2e8f0; /* Slightly darker light blue-gray for depth */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .container {
+            background-color: #ffffff;
+            border-radius: 2rem; /* Even more rounded corners */
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 10px 15px -3px rgba(0, 0, 0, 0.1); /* Stronger shadow */
+            padding: 3rem; /* Increased padding for spacious feel */
+            max-width: 1200px; /* Wider container */
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 3rem; /* More space between main sections */
+        }
+        .video-container {
+            position: relative;
+            width: 100%;
+            padding-bottom: 56.25%; /* 16:9 Aspect Ratio (height / width * 100%) */
+            overflow: hidden;
+            border-radius: 1.5rem; /* Rounded corners for video container */
+            box-shadow: inset 0 4px 8px rgba(0, 0, 0, 0.1); /* Inner shadow for depth */
+            background-color: #1a202c; /* Darker background for video area */
+        }
+        .video-stream {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: contain; /* Ensure video scales properly within the aspect ratio */
+            display: block; /* Ensure it takes up space */
+        }
+        .video-placeholder {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #a0aec0; /* Light gray text for placeholder */
+            font-size: 1.25rem;
+            font-weight: 600;
+            background-color: #1a202c; /* Match video background */
+            border-radius: 1.5rem;
+        }
+        .info-card {
+            background-color: #f8fafc; /* Very light gray for info cards */
+            border-radius: 1rem;
+            padding: 2rem;
+            border: 1px solid #e2e8f0; /* Subtle border */
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05); /* Light shadow for cards */
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .info-card strong {
+            color: #2d3748; /* Darker text for labels */
+        }
+        .info-card span {
+            color: #4a5568; /* Slightly lighter text for values */
+        }
+        .text-gradient {
+            background: linear-gradient(to right, #22c55e, #84cc16); /* More vibrant green gradient */
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .button-primary {
+            background-image: linear-gradient(to right, #22c55e, #84cc16); /* Vibrant green gradient */
+            color: white;
+            padding: 1rem 2.5rem; /* Larger padding for button */
+            border-radius: 0.75rem;
+            font-weight: bold;
+            font-size: 1.125rem; /* Larger font size */
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out, background-image 0.3s ease;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2); /* More pronounced shadow */
+            border: none;
+            cursor: pointer;
+            text-transform: uppercase; /* Uppercase text */
+            letter-spacing: 0.05em; /* Slight letter spacing */
+        }
+        .button-primary:hover {
+            transform: translateY(-3px); /* More pronounced lift */
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.25);
+            background-image: linear-gradient(to right, #16a34a, #65a30d); /* Slightly darker gradient on hover */
+        }
+        .button-primary:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .button-primary.bg-red-500 { /* Specific style for stop button */
+            background-image: linear-gradient(to right, #ef4444, #dc2626); /* Red gradient for stop */
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2), 0 0 15px rgba(239, 68, 68, 0.5); /* Red glow */
+        }
+        .button-primary.bg-red-500:hover {
+            background-image: linear-gradient(to right, #dc2626, #b91c1c);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.25), 0 0 20px rgba(239, 68, 68, 0.7);
+        }
+
+        /* Responsive adjustments */
+        @media (min-width: 1024px) { /* Changed from 768px to 1024px for larger desktop layout */
+            .container {
+                flex-direction: row;
+                gap: 4rem;
+            }
+            .main-content {
+                flex: 2;
+                max-width: 66.66%; /* Equivalent to w-2/3 */
+            }
+            .sidebar {
+                flex: 1;
+                max-width: 33.33%; /* Equivalent to w-1/3 */
+                display: flex;
+                flex-direction: column;
+                gap: 3rem;
+            }
+        }
+    </style>
+</head>
+<body class="antialiased">
+    <div class="container">
+        <div class="main-content flex-grow">
+
+
+            <div class="video-container mb-8">
+                <img id="videoStream" class="video-stream" src="" alt="Live Video Feed">
+                <div id="videoPlaceholder" class="video-placeholder">
+                    Video Stream Stopped / Loading...
+                </div>
+            </div>
+
+            <div class="flex justify-center">
+                <button id="startStopButton" class="button-primary">
+                    Start Detection
+                </button>
+            </div>
+        </div>
+
+        <div class="sidebar">
+            <div class="info-card">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4 flex items-center">
+                    <!-- Icon for System Status (Lightning Bolt) -->
+                    <svg class="w-7 h-7 mr-3 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                    System Status
+                </h2>
+                <div class="space-y-4">
+                    <p class="flex justify-between items-center text-lg">
+                        <strong class="text-gray-700">FPS:</strong>
+                        <span id="fpsDisplay" class="font-semibold text-gray-900">Stopped</span>
+                    </p>
+                    <p class="flex justify-between items-center text-lg">
+                        <strong class="text-gray-700">Closest Object:</strong>
+                        <span id="closestObjectDisplay" class="font-semibold text-gray-900">Stopped</span>
+                    </p>
+                    <p class="flex justify-between items-center text-lg">
+                        <strong class="text-gray-700">Distance:</strong>
+                        <span id="closestDistanceDisplay" class="font-semibold text-gray-900">Stopped</span>
+                    </p>
+                </div>
+            </div>
+
+            <div class="info-card">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4 flex items-center">
+                    <!-- Icon for Audio Feedback (Speaker) -->
+                    <svg class="w-7 h-7 mr-3 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.899a9 9 0 010 12.728M5.636 18.364A9 9 0 0112 12m-7.071 7.071A5 5 0 0112 12"></path></svg>
+                    Audio Feedback
+                </h2>
+                <div class="space-y-4">
+                    <p class="text-lg">
+                        <strong class="text-gray-700">Last Announcement:</strong>
+                        <span id="lastAnnouncementDisplay" class="font-semibold text-gray-900">None</span>
+                    </p>
+                    <p class="text-sm text-gray-500 mt-2">
+                        (Audio announcements will play automatically if your browser allows. Ensure sound is enabled.)
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const videoStream = document.getElementById('videoStream');
+        const videoPlaceholder = document.getElementById('videoPlaceholder');
+        const startStopButton = document.getElementById('startStopButton');
+        const fpsDisplay = document.getElementById('fpsDisplay');
+        const closestObjectDisplay = document.getElementById('closestObjectDisplay');
+        const closestDistanceDisplay = document.getElementById('closestDistanceDisplay');
+        const lastAnnouncementDisplay = document.getElementById('lastAnnouncementDisplay');
+
+        let isDetecting = false;
+        let audioIntervalId = null;
+        let statusIntervalId = null;
+        let speechSynthesisUtterance = null;
+        let lastSpokenAnnouncement = "";
+
+        // Function to speak text using Web Speech API
+        function speakText(text) {
+            if ('speechSynthesis' in window) {
+                if (speechSynthesisUtterance) {
+                    window.speechSynthesis.cancel(); // Stop any ongoing speech
+                }
+                speechSynthesisUtterance = new SpeechSynthesisUtterance(text);
+                speechSynthesisUtterance.lang = 'en-US'; // Set language
+                speechSynthesisUtterance.rate = 1.0; // Speed of speech
+                speechSynthesisUtterance.pitch = 1.0; // Pitch of speech
+
+                // Optional: Select a voice if available
+                const voices = window.speechSynthesis.getVoices();
+                const preferredVoice = voices.find(voice => voice.name === 'Google US English'); // Example voice
+                if (preferredVoice) {
+                    speechSynthesisUtterance.voice = preferredVoice;
+                }
+
+                window.speechSynthesis.speak(speechSynthesisUtterance);
+            } else {
+                console.warn("Web Speech API not supported in this browser.");
+            }
+        }
+
+        // Function to fetch and play audio announcements
+        async function fetchAudioAnnouncement() {
+            try {
+                const response = await fetch('/get_announcement');
+                const data = await response.json();
+                const announcement = data.announcement;
+
+                if (announcement && announcement !== lastSpokenAnnouncement) {
+                    lastAnnouncementDisplay.textContent = announcement;
+                    speakText(announcement);
+                    lastSpokenAnnouncement = announcement;
+                }
+            } catch (error) {
+                console.error("Error fetching audio announcement:", error);
+            }
+        }
+
+        // Function to fetch and update status
+        async function fetchStatus() {
+            try {
+                const response = await fetch('/get_status');
+                const data = await response.json();
+                fpsDisplay.textContent = data.fps;
+                closestObjectDisplay.textContent = data.closest_object;
+                closestDistanceDisplay.textContent = data.closest_distance;
+            } catch (error) {
+                console.error("Error fetching status:", error);
+                fpsDisplay.textContent = "Error";
+                closestObjectDisplay.textContent = "Error";
+                closestDistanceDisplay.textContent = "Error";
+            }
+        }
+
+        // Function to start detection
+        function startDetection() {
+            if (isDetecting) return;
+
+            // Show video stream, hide placeholder
+            videoStream.style.display = 'block';
+            videoPlaceholder.style.display = 'none';
+            videoStream.src = "{{ url_for('video_feed') }}";
+            videoStream.onerror = () => {
+                console.error("Failed to load video stream. Ensure Flask server is running and webcam is accessible.");
+                // Using a custom message box instead of alert
+                showMessageBox("Error", "Could not start video stream. Please check server logs and webcam access.");
+                stopDetection();
+            };
+
+            // Start polling for audio announcements every 1 second
+            audioIntervalId = setInterval(fetchAudioAnnouncement, 1000);
+            // Start polling for status updates every 500ms
+            statusIntervalId = setInterval(fetchStatus, 500);
+
+            startStopButton.textContent = "Stop Detection";
+            startStopButton.classList.remove('bg-green-500', 'hover:bg-green-600');
+            startStopButton.classList.add('bg-red-500'); /* Use class for red gradient */
+            isDetecting = true;
+            console.log("Detection started.");
+        }
+
+        // Function to stop detection
+        function stopDetection() {
+            if (!isDetecting) return;
+
+            // Stop video stream by setting src to an empty string or placeholder
+            videoStream.src = "";
+            videoStream.style.display = 'none'; // Hide video
+            videoPlaceholder.style.display = 'flex'; // Show placeholder
+            videoStream.alt = "Video stream stopped.";
+
+            // Clear intervals
+            if (audioIntervalId) {
+                clearInterval(audioIntervalId);
+                audioIntervalId = null;
+            }
+            if (statusIntervalId) {
+                clearInterval(statusIntervalId);
+                statusIntervalId = null;
+            }
+
+            // Cancel any ongoing speech
+            if ('speechSynthesis' in window && speechSynthesisUtterance) {
+                window.speechSynthesis.cancel();
+            }
+
+            startStopButton.textContent = "Start Detection";
+            startStopButton.classList.remove('bg-red-500'); /* Remove red gradient class */
+            startStopButton.classList.add('bg-green-500', 'hover:bg-green-600');
+            isDetecting = false;
+            console.log("Detection stopped.");
+
+            // Reset displays
+            fpsDisplay.textContent = "Stopped";
+            closestObjectDisplay.textContent = "Stopped";
+            closestDistanceDisplay.textContent = "Stopped";
+            lastAnnouncementDisplay.textContent = "None";
+            lastSpokenAnnouncement = "";
+        }
+
+        // Custom Message Box (replaces alert)
+        function showMessageBox(title, message) {
+            const messageBoxHtml = `
+                <div id="customMessageBox" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50">
+                    <div class="bg-white p-8 rounded-lg shadow-xl max-w-sm w-full text-center">
+                        <h3 class="text-xl font-bold mb-4 text-gray-800">${title}</h3>
+                        <p class="text-gray-700 mb-6">${message}</p>
+                        <button id="messageBoxCloseButton" class="button-primary !bg-blue-500 !hover:bg-blue-600">OK</button>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', messageBoxHtml);
+
+            document.getElementById('messageBoxCloseButton').addEventListener('click', () => {
+                document.getElementById('customMessageBox').remove();
+            });
+        }
+
+
+        // Event listener for the start/stop button
+        startStopButton.addEventListener('click', () => {
+            if (isDetecting) {
+                stopDetection();
+            } else {
+                startDetection();
+            }
+        });
+
+        // Initial state: set button to "Start Detection" and stop any active streams
+        document.addEventListener('DOMContentLoaded', () => {
+            stopDetection(); // Ensure it starts in a stopped state
+            // Pre-fetch voices for faster speech synthesis
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.getVoices();
+                window.speechSynthesis.onvoiceschanged = () => {
+                    window.speechSynthesis.getVoices();
+                };
+            }
+        });
+
+    </script>
+</body>
+</html>
