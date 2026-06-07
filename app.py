@@ -4,8 +4,9 @@ from ultralytics import YOLO
 import time
 import numpy as np
 import threading
-from flask import Flask, Response, render_template, jsonify
+from flask import Flask, Response, render_template, jsonify, request
 import queue
+import base64
 
 # --- Configuration ---
 # IMPORTANT: Replace 'yolov8s.pt' with the actual path to your model file.
@@ -229,60 +230,49 @@ except Exception as e:
     # For this example, we'll let the app start but detection won't work.
     model = None
 
-# --- Initialize Webcam Capture (global for access across functions) ---
-cap = None
-def init_camera():
-    global cap
-    if cap is None or not cap.isOpened():
-        cap = cv2.VideoCapture(WEBCAM_SOURCE)
-        if not cap.isOpened():
-            print(f"Error: Could not open webcam with source {WEBCAM_SOURCE}.")
-            cap = None
-        else:
-            print(f"Webcam with source {WEBCAM_SOURCE} opened successfully.")
-    return cap
+# --- Flask Routes ---
+@app.route('/')
+def index():
+    """Renders the main HTML page."""
+    return render_template('index.html')
 
-# --- Generator function for video streaming ---
-def generate_frames():
-    global_cap = init_camera()
-    if global_cap is None or model is None:
-        print("Camera or model not initialized. Cannot stream frames.")
-        # Return a blank frame or error image
-        blank_frame = np.zeros((480, 640, 3), dtype=np.uint8)
-        cv2.putText(blank_frame, "Error: Camera/Model Not Ready", (50, 240),
-                    cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
-        ret, buffer = cv2.imencode('.jpg', blank_frame)
-        frame = buffer.tobytes()
-        yield (b'--frame\r\n'
-               b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
-        return
+@app.route('/process_frame', methods=['POST'])
+def process_frame():
+    """Processes a client-side camera frame and returns detection results."""
+    try:
+        data = request.json
+        if not data or 'image' not in data:
+            return jsonify({"error": "No image data provided"}), 400
 
-    prev_frame_time = 0
-    new_frame_time = 0
+        # Decode base64 image
+        image_data = data['image'].split(',')[1]
+        image_bytes = base64.b64decode(image_data)
+        np_arr = np.frombuffer(image_bytes, np.uint8)
+        frame = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
 
-    while True:
-        ret, frame = global_cap.read()
-        if not ret:
-            print("Failed to grab frame, exiting video stream...")
-            break
+        if frame is None:
+            return jsonify({"error": "Failed to decode image"}), 400
 
         current_time = time.time()
+        
+        # Perform object detection on the received frame
+        if model is None:
+            return jsonify({"error": "Model not initialized"}), 500
 
-        # Perform object detection
         results = model(frame, stream=True, conf=CONF_THRESHOLD, iou=IOU_THRESHOLD, verbose=False)
-
-        annotated_frame = frame.copy()
 
         closest_object_data = None  # (class_name, distance_meters, direction_simple, direction_spoken)
         min_distance = float('inf')
+        detected_objects = []
 
-        detected_objects_info = []
+        # Get frame dimensions
+        frame_height, frame_width = frame.shape[:2]
 
         for r in results:
             boxes = r.boxes.xyxy.cpu().numpy()
             confidences = r.boxes.conf.cpu().numpy()
             class_ids = r.boxes.cls.cpu().numpy().astype(int)
-            names = model.names  # Get class names from the model
+            names = model.names
 
             for box, conf, class_id in zip(boxes, confidences, class_ids):
                 x1, y1, x2, y2 = map(int, box)
@@ -292,10 +282,8 @@ def generate_frames():
                 object_height_pixels = y2 - y1
 
                 distance_meters = None
-                distance_text = ""
-
+                
                 # Calculate relative horizontal direction
-                frame_width = frame.shape[1] if frame.shape[1] > 0 else 640
                 center_x = (x1 + x2) / 2
                 if center_x < frame_width / 3:
                     direction_spoken = "on your left"
@@ -320,31 +308,22 @@ def generate_frames():
 
                     if distance_meters is not None:
                         if MIN_ANNOUNCE_DISTANCE <= distance_meters <= MAX_ANNOUNCE_DISTANCE:
-                            distance_text = f"Dist: {distance_meters:.2f}m"
                             if distance_meters < min_distance:
                                 min_distance = distance_meters
                                 closest_object_data = (class_name, distance_meters, direction_simple, direction_spoken)
-                        else:
-                            distance_text = f"Dist: {distance_meters:.2f}m (Out of Range)"
-                    else:
-                        distance_text = "Dist: N/A"
 
-                label = f"{class_name} {conf:.2f} {distance_text} ({direction_simple})"
-                color = (16, 185, 129)  # Emerald green for bounding box
-
-                cv2.rectangle(annotated_frame, (x1, y1), (x2, y2), color, 2)
-                cv2.putText(annotated_frame, label, (x1, y1 - 10),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
-
-                detected_objects_info.append({
+                detected_objects.append({
                     "class": class_name,
+                    "box": [x1, y1, x2, y2],
+                    "confidence": float(conf),
                     "distance": f"{distance_meters:.2f}m" if distance_meters is not None else "N/A",
                     "direction": direction_simple
                 })
 
-        # --- Audio Feedback Logic (Stability and Cooldown) ---
+        # --- Audio Announcement Logic (Stability and Cooldown) ---
+        announcement_text = ""
         with state_lock:
-            # Update global state for UI display
+            # Update global state for dashboard metrics
             global_detection_state["current_closest_object"] = closest_object_data[0] if closest_object_data else "None"
             global_detection_state["current_closest_distance"] = f"{closest_object_data[1]:.2f}m" if closest_object_data else "N/A"
             global_detection_state["current_closest_direction"] = closest_object_data[2] if closest_object_data else "N/A"
@@ -376,14 +355,6 @@ def generate_frames():
                                     f"at {current_closest_distance:.2f} meters."
                                 )
 
-                                # Put the announcement into the queue for the Flask endpoint
-                                try:
-                                    audio_announcement_queue.put_nowait(announcement_text)
-                                    print(f"Queueing audio: {announcement_text}")
-                                except queue.Full:
-                                    # Queue is full, meaning the previous announcement hasn't been picked up yet
-                                    pass # Skip adding if queue is full
-
                                 global_detection_state["last_announcement_time"] = current_time
                                 global_detection_state["last_announced_object"] = current_closest_class
                                 global_detection_state["last_announced_distance"] = current_closest_distance
@@ -398,64 +369,31 @@ def generate_frames():
                 global_detection_state["last_announced_direction"] = None
                 global_detection_state["last_announcement_time"] = 0
 
-        # Display FPS
-        new_frame_time = time.time()
-        fps = 1 / (new_frame_time - prev_frame_time)
-        prev_frame_time = new_frame_time
-        fps_text = f"FPS: {int(fps)}"
-        cv2.putText(annotated_frame, fps_text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-        with state_lock:
-            global_detection_state["current_fps"] = int(fps)
+        # Calculate FPS
+        fps = 0
+        if "last_request_time" in global_detection_state:
+            time_diff = current_time - global_detection_state["last_request_time"]
+            if time_diff > 0:
+                fps = int(1 / time_diff)
+        global_detection_state["last_request_time"] = current_time
+        global_detection_state["current_fps"] = fps
 
-
-        # Encode frame to JPEG
-        ret, buffer = cv2.imencode('.jpg', annotated_frame)
-        frame = buffer.tobytes()
-
-        yield (b'--frame\r\n'
-               b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
-
-# --- Flask Routes ---
-@app.route('/')
-def index():
-    """Renders the main HTML page."""
-    return render_template('index.html')
-
-@app.route('/video_feed')
-def video_feed():
-    """Streams the video feed with object detection."""
-    return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
-
-@app.route('/get_announcement')
-def get_announcement():
-    """Returns the latest audio announcement text."""
-    try:
-        announcement = audio_announcement_queue.get_nowait()
-        return jsonify({"announcement": announcement})
-    except queue.Empty:
-        return jsonify({"announcement": ""}) # No new announcement
-
-@app.route('/get_status')
-def get_status():
-    """Returns the current status of the detection."""
-    with state_lock:
         return jsonify({
-            "fps": global_detection_state["current_fps"],
-            "closest_object": global_detection_state["current_closest_object"],
-            "closest_distance": global_detection_state["current_closest_distance"],
-            "closest_direction": global_detection_state.get("current_closest_direction", "N/A")
+            "objects": detected_objects,
+            "closest": {
+                "class": closest_object_data[0] if closest_object_data else "None",
+                "distance": f"{closest_object_data[1]:.2f}m" if closest_object_data else "N/A",
+                "direction": closest_object_data[2] if closest_object_data else "N/A"
+            },
+            "announcement": announcement_text,
+            "fps": fps
         })
+
+    except Exception as e:
+        print(f"Error in process_frame: {e}")
+        return jsonify({"error": str(e)}), 500
 
 # --- Main execution block ---
 if __name__ == '__main__':
-    # It's good practice to release the camera when the app shuts down
-    # However, Flask's development server doesn't always handle this cleanly.
-    # For production, consider using a proper WSGI server (e.g., Gunicorn)
-    # and managing resources more robustly.
-    try:
-        app.run(host='0.0.0.0', port=5000, debug=False, threaded=True)
-    finally:
-        if cap is not None:
-            cap.release()
-            print("Webcam released.")
+    app.run(host='0.0.0.0', port=5000, debug=False, threaded=True)
 

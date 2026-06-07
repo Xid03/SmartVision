@@ -58,7 +58,8 @@
                     
                     <!-- Real-Time Camera Stream Frame -->
                     <div id="scanViewport" class="scan-viewport">
-                        <img id="videoStream" class="video-stream-el" src="" alt="Live Video Feed">
+                        <video id="cameraVideo" class="video-stream-el" style="display: none;" autoplay playsinline muted></video>
+                        <canvas id="boxOverlay" class="video-stream-el" style="display: none; position: absolute; top: 0; left: 0; pointer-events: none; z-index: 15;"></canvas>
                         
                         <!-- Radar Pulse Scanning Overlay -->
                         <div id="radarOverlay" class="radar-overlay">
@@ -390,8 +391,6 @@
     <script>
         // --- Core Application State ---
         let isDetecting = false;
-        let audioIntervalId = null;
-        let statusIntervalId = null;
         let lastSpokenAnnouncement = "";
         let currentDistanceMeters = 0.0;
         let proximityWarningActive = false;
@@ -410,6 +409,16 @@
         let isListening = false;
         let waveAnimationId = null;
 
+        // --- Camera & Frame Upload Media State ---
+        let localStream = null;
+        let captureIntervalId = null;
+        
+        // Offscreen canvas for frame downscaling & compression
+        const offscreenCanvas = document.createElement('canvas');
+        offscreenCanvas.width = 640;
+        offscreenCanvas.height = 480;
+        const offscreenCtx = offscreenCanvas.getContext('2d');
+
         // --- User Config (persists to localStorage) ---
         let settings = {
             theme: 'dark',
@@ -424,7 +433,8 @@
         };
 
         // --- DOM Elements ---
-        const videoStream = document.getElementById('videoStream');
+        const cameraVideo = document.getElementById('cameraVideo');
+        const boxOverlay = document.getElementById('boxOverlay');
         const videoPlaceholder = document.getElementById('videoPlaceholder');
         const scanToggleBtn = document.getElementById('scanToggleBtn');
         const scanToggleText = document.getElementById('scanToggleText');
@@ -605,6 +615,8 @@
                 settings.cooldown = parseInt(e.target.value);
                 cooldownValue.textContent = `${settings.cooldown}s`;
                 saveSettings();
+                // Send new cooldown to server via optional endpoint if needed, or we filter in JS. We will pass this.
+                // For simplicity, backend reads the interval in the process_frame. Let's send it in post.
             });
 
             rateSlider.addEventListener('input', (e) => {
@@ -777,7 +789,7 @@
         }
 
         // ==========================================
-        // SPATIAL SONAR BEERING ENGINE (WEB AUDIO)
+        // SPATIAL SONAR BEEPING ENGINE (WEB AUDIO)
         // ==========================================
         
         function playSonarPing(distance) {
@@ -853,73 +865,87 @@
         }
 
         // ==========================================
-        // FLASK BACKEND SCANNING INTEGRATION
+        // CLIENT-SIDE CAMERA FRAME UPLOAD ENGINE
         // ==========================================
         
         // Starts the scanning pipeline
-        function startDetection() {
+        async function startDetection() {
             if (isDetecting) return;
             
-            // Visual viewport swap
-            videoStream.style.display = 'block';
-            videoPlaceholder.style.display = 'none';
-            scanViewport.classList.add('active');
-            if (settings.overlayRadar) radarOverlay.style.display = 'block';
-            
-            // Set source endpoint
-            videoStream.src = "{{ url_for('video_feed') }}";
-            
-            videoStream.onerror = () => {
-                console.error("Webcam video feed server connection failed.");
-                showCustomModal("Connection Error", "Webcam feed failed to load. Check that your camera isn't occupied and the Flask server is running.");
+            try {
+                // Access rear camera on mobile, fallback to any camera on desktop
+                const constraints = {
+                    video: {
+                        facingMode: { ideal: "environment" },
+                        width: { ideal: 640 },
+                        height: { ideal: 480 }
+                    },
+                    audio: false
+                };
+                
+                localStream = await navigator.mediaDevices.getUserMedia(constraints);
+                cameraVideo.srcObject = localStream;
+                cameraVideo.style.display = 'block';
+                boxOverlay.style.display = 'block';
+                videoPlaceholder.style.display = 'none';
+                scanViewport.classList.add('active');
+                if (settings.overlayRadar) radarOverlay.style.display = 'block';
+                
+                // Initialize canvas logical dimensions
+                boxOverlay.width = 640;
+                boxOverlay.height = 480;
+                
+                isDetecting = true;
+                scanToggleBtn.classList.add('active');
+                scanToggleText.textContent = "Stop Scan";
+                connectionDot.classList.add('active');
+
+                // Start periodic frame capture and upload (once every 200ms)
+                captureIntervalId = setInterval(captureAndUploadFrame, 200);
+
+                // Start Sonar repeat timer
+                if (settings.sonarEnabled) {
+                    scheduleNextSonarPing();
+                }
+
+                speakTextLocal("Scanning activated");
+                playHapticFeedback(40);
+                
+            } catch (error) {
+                console.error("Failed to access camera:", error);
+                showCustomModal("Camera Access Error", "Could not access camera feed. Verify camera permissions in your browser and ensure you are using a secure context (HTTPS or localhost).");
                 stopDetection();
-            };
-
-            // Start intervals: announcements and metrics status
-            audioIntervalId = setInterval(fetchAudioAnnouncement, 1000);
-            statusIntervalId = setInterval(fetchStatus, 450);
-
-            // Set buttons active state
-            scanToggleBtn.classList.add('active');
-            scanToggleText.textContent = "Stop Scan";
-            isDetecting = true;
-            
-            connectionDot.classList.add('active');
-            
-            // Start Sonar repeat timer
-            if (settings.sonarEnabled) {
-                scheduleNextSonarPing();
             }
-
-            speakTextLocal("Scanning activated");
-            playHapticFeedback(40);
         }
 
         // Stops the scanning pipeline
         function stopDetection() {
-            if (!isDetecting) {
-                // Set initial visual elements on page load
-                videoStream.src = "";
-                videoStream.style.display = 'none';
-                videoPlaceholder.style.display = 'flex';
-                scanViewport.classList.remove('active', 'danger-alert');
-                radarOverlay.style.display = 'none';
-                proximityAlert.classList.remove('show');
-                return;
+            // Stop media stream tracks
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+                localStream = null;
+            }
+            if (cameraVideo) {
+                cameraVideo.srcObject = null;
+                cameraVideo.style.display = 'none';
+            }
+            if (boxOverlay) {
+                boxOverlay.style.display = 'none';
+                const ctx = boxOverlay.getContext('2d');
+                ctx.clearRect(0, 0, boxOverlay.width, boxOverlay.height);
             }
 
             // Clear intervals & timeouts
-            if (audioIntervalId) clearInterval(audioIntervalId);
-            if (statusIntervalId) clearInterval(statusIntervalId);
-            if (sonarTimeoutId) clearTimeout(sonarTimeoutId);
-            
-            audioIntervalId = null;
-            statusIntervalId = null;
-            sonarTimeoutId = null;
+            if (captureIntervalId) {
+                clearInterval(captureIntervalId);
+                captureIntervalId = null;
+            }
+            if (sonarTimeoutId) {
+                clearTimeout(sonarTimeoutId);
+                sonarTimeoutId = null;
+            }
 
-            // Reset stream and overlays
-            videoStream.src = "";
-            videoStream.style.display = 'none';
+            // Reset UI states
             videoPlaceholder.style.display = 'flex';
             scanViewport.classList.remove('active', 'danger-alert');
             radarOverlay.style.display = 'none';
@@ -951,48 +977,48 @@
             playHapticFeedback(40);
         }
 
-        // Poll vocal announcements from Flask backend queue
-        async function fetchAudioAnnouncement() {
-            try {
-                const response = await fetch('/get_announcement');
-                const data = await response.json();
-                const announcement = data.announcement;
+        // Periodic frame capture and POST upload
+        async function captureAndUploadFrame() {
+            if (!isDetecting || !localStream) return;
 
-                if (announcement && announcement !== lastSpokenAnnouncement) {
-                    announcementText.textContent = announcement;
-                    speakText(announcement);
-                    lastSpokenAnnouncement = announcement;
+            try {
+                // Draw current video frame to offscreen canvas
+                offscreenCtx.drawImage(cameraVideo, 0, 0, 640, 480);
+                
+                // Compress canvas to base64 jpeg at 0.6 quality
+                const base64Image = offscreenCanvas.toDataURL('image/jpeg', 0.6);
+
+                // Send frame to Flask backend
+                const response = await fetch('/process_frame', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ image: base64Image })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Server returned status: ${response.status}`);
                 }
-            } catch (error) {
-                console.error("Error fetching announcements:", error);
-            }
-        }
 
-        // Poll status metrics from Flask backend
-        async function fetchStatus() {
-            try {
-                const response = await fetch('/get_status');
                 const data = await response.json();
                 
+                // Update UI Metrics
                 fpsBadge.textContent = `FPS: ${data.fps}`;
-                closestObject.textContent = data.closest_object;
-                closestDistance.textContent = data.closest_distance;
-                
-                currentDistanceMeters = data.closest_distance;
-                
-                // Show relative horizontal direction in panel UI
-                if (data.closest_object !== 'None' && data.closest_direction !== 'N/A') {
-                    closestDirection.textContent = data.closest_direction;
+                closestObject.textContent = data.closest.class;
+                closestDistance.textContent = data.closest.distance;
+                currentDistanceMeters = data.closest.distance;
+
+                if (data.closest.class !== 'None' && data.closest.direction !== 'N/A') {
+                    closestDirection.textContent = data.closest.direction;
                     closestDirectionBlock.style.display = 'flex';
-                    
-                    // Proactively log to history log list
-                    logDetectionToHistory(data.closest_object, data.closest_distance, data.closest_direction);
+                    logDetectionToHistory(data.closest.class, data.closest.distance, data.closest.direction);
                 } else {
                     closestDirectionBlock.style.display = 'none';
                 }
 
-                // Check proximity warning triggers
-                const distVal = parseFloat(data.closest_distance);
+                // Proximity collision alarm warning checks
+                const distVal = parseFloat(data.closest.distance);
                 if (!isNaN(distVal) && distVal < 1.0) {
                     if (!proximityWarningActive) {
                         scanViewport.classList.add('danger-alert');
@@ -1008,13 +1034,56 @@
                     }
                 }
 
+                // Verbal TTS Announcement trigger
+                if (data.announcement && data.announcement !== lastSpokenAnnouncement) {
+                    announcementText.textContent = data.announcement;
+                    speakText(data.announcement);
+                    lastSpokenAnnouncement = data.announcement;
+                }
+
+                // Render bounding boxes on transparent canvas overlay
+                drawBoundingBoxes(data.objects);
+
             } catch (error) {
-                console.error("Error fetching status metrics:", error);
+                console.error("Frame upload loop error:", error);
                 fpsBadge.textContent = "FPS: Err";
-                closestObject.textContent = "Error";
-                closestDistance.textContent = "Error";
-                closestDirectionBlock.style.display = 'none';
             }
+        }
+
+        // Draw detection box outlines on screen overlay
+        function drawBoundingBoxes(objects) {
+            const ctx = boxOverlay.getContext('2d');
+            ctx.clearRect(0, 0, boxOverlay.width, boxOverlay.height);
+
+            if (!objects || !isDetecting) return;
+
+            objects.forEach(obj => {
+                const [x1, y1, x2, y2] = obj.box;
+                const className = obj.class;
+                const distance = obj.distance;
+                const direction = obj.direction;
+                const conf = obj.confidence;
+
+                // Set bounding box colors: Red if very close range (< 1.0m)
+                const distVal = parseFloat(distance);
+                const isClose = !isNaN(distVal) && distVal < 1.0;
+                
+                ctx.lineWidth = 3;
+                ctx.strokeStyle = isClose ? '#ef4444' : '#10b981'; // Red or Emerald green
+                ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
+
+                // Draw solid label background
+                ctx.fillStyle = isClose ? '#ef4444' : '#10b981';
+                ctx.font = 'bold 13px Outfit, sans-serif';
+                const labelText = `${className} (${distance})`;
+                const textWidth = ctx.measureText(labelText).width;
+                
+                ctx.fillRect(x1 - 1, y1 - 22, textWidth + 12, 22);
+
+                // Draw label text
+                ctx.fillStyle = '#ffffff';
+                ctx.fillText(labelText, x1 + 5, y1 - 6);
+            });
         }
 
         // Start/Stop Scan button trigger
@@ -1039,7 +1108,7 @@
             if (detectionHistory.length > 0) {
                 const last = detectionHistory[0];
                 if (last.className === className && last.direction === direction) {
-                    // Just update the distance and time, don't append a new card
+                    // Just update distance and time
                     last.distance = distance;
                     last.timestamp = timestamp;
                     renderHistoryList();
@@ -1359,7 +1428,7 @@
             }
         }
 
-        // Add a bubble to chat interface
+        // Add bubble to chat transcript
         function addChatBubble(sender, text) {
             const bubble = document.createElement('div');
             bubble.classList.add('chat-bubble', sender);
