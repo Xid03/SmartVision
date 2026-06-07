@@ -27,3 +27,6 @@ debug.log
 
 # YOLO label caches
 *.cache
+
+# Cloned Hugging Face folder
+SmartVision/
