@@ -1,5 +1,4 @@
 import cv2
-from comtypes.tools.tlbparser import double_type
 from ultralytics import YOLO
 import time
 import numpy as np
@@ -395,5 +394,6 @@ def process_frame():
 
 # --- Main execution block ---
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=False, threaded=True)
+    # Port 7860 is required for Hugging Face Spaces deployment
+    app.run(host='0.0.0.0', port=7860, debug=False, threaded=True)
 
