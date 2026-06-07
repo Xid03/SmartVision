@@ -1,11 +1,29 @@
+# Virtual Environment
 .venv/
-.idea/
+venv/
+ENV/
+
+# Python Cache
 __pycache__/
 *.py[cod]
-.pytest_cache/
+*$py.class
 
-.env
-.env.*
+# IDE Configuration
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
 
+# Large YOLO Model weights
+*.pt
+yolov8s.pt
+
+# Training runs and outputs
 runs/
-dataset/**/labels.cache
+debug.log
+
+# YOLO label caches
+*.cache

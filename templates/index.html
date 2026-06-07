@@ -2,242 +2,956 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Intelligent Vision System</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>SmartVision - Assistive Nav</title>
     <link rel="icon" href="{{ url_for('static', filename='logo.png') }}" type="image/png">
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        /* Custom styles to enhance the design */
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #e2e8f0; /* Slightly darker light blue-gray for depth */
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-            padding: 20px;
-            box-sizing: border-box;
-        }
-        .container {
-            background-color: #ffffff;
-            border-radius: 2rem; /* Even more rounded corners */
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 10px 15px -3px rgba(0, 0, 0, 0.1); /* Stronger shadow */
-            padding: 3rem; /* Increased padding for spacious feel */
-            max-width: 1200px; /* Wider container */
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            gap: 3rem; /* More space between main sections */
-        }
-        .video-container {
-            position: relative;
-            width: 100%;
-            padding-bottom: 56.25%; /* 16:9 Aspect Ratio (height / width * 100%) */
-            overflow: hidden;
-            border-radius: 1.5rem; /* Rounded corners for video container */
-            box-shadow: inset 0 4px 8px rgba(0, 0, 0, 0.1); /* Inner shadow for depth */
-            background-color: #1a202c; /* Darker background for video area */
-        }
-        .video-stream {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: contain; /* Ensure video scales properly within the aspect ratio */
-            display: block; /* Ensure it takes up space */
-        }
-        .video-placeholder {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #a0aec0; /* Light gray text for placeholder */
-            font-size: 1.25rem;
-            font-weight: 600;
-            background-color: #1a202c; /* Match video background */
-            border-radius: 1.5rem;
-        }
-        .info-card {
-            background-color: #f8fafc; /* Very light gray for info cards */
-            border-radius: 1rem;
-            padding: 2rem;
-            border: 1px solid #e2e8f0; /* Subtle border */
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05); /* Light shadow for cards */
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-        }
-        .info-card strong {
-            color: #2d3748; /* Darker text for labels */
-        }
-        .info-card span {
-            color: #4a5568; /* Slightly lighter text for values */
-        }
-        .text-gradient {
-            background: linear-gradient(to right, #22c55e, #84cc16); /* More vibrant green gradient */
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        .button-primary {
-            background-image: linear-gradient(to right, #22c55e, #84cc16); /* Vibrant green gradient */
-            color: white;
-            padding: 1rem 2.5rem; /* Larger padding for button */
-            border-radius: 0.75rem;
-            font-weight: bold;
-            font-size: 1.125rem; /* Larger font size */
-            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out, background-image 0.3s ease;
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2); /* More pronounced shadow */
-            border: none;
-            cursor: pointer;
-            text-transform: uppercase; /* Uppercase text */
-            letter-spacing: 0.05em; /* Slight letter spacing */
-        }
-        .button-primary:hover {
-            transform: translateY(-3px); /* More pronounced lift */
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.25);
-            background-image: linear-gradient(to right, #16a34a, #65a30d); /* Slightly darker gradient on hover */
-        }
-        .button-primary:active {
-            transform: translateY(0);
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-        .button-primary.bg-red-500 { /* Specific style for stop button */
-            background-image: linear-gradient(to right, #ef4444, #dc2626); /* Red gradient for stop */
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2), 0 0 15px rgba(239, 68, 68, 0.5); /* Red glow */
-        }
-        .button-primary.bg-red-500:hover {
-            background-image: linear-gradient(to right, #dc2626, #b91c1c);
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.25), 0 0 20px rgba(239, 68, 68, 0.7);
-        }
-
-        /* Responsive adjustments */
-        @media (min-width: 1024px) { /* Changed from 768px to 1024px for larger desktop layout */
-            .container {
-                flex-direction: row;
-                gap: 4rem;
-            }
-            .main-content {
-                flex: 2;
-                max-width: 66.66%; /* Equivalent to w-2/3 */
-            }
-            .sidebar {
-                flex: 1;
-                max-width: 33.33%; /* Equivalent to w-1/3 */
-                display: flex;
-                flex-direction: column;
-                gap: 3rem;
-            }
-        }
-    </style>
+    
+    <!-- Google Fonts - Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <!-- Custom Style Sheet -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
-<body class="antialiased">
-    <div class="container">
-        <div class="main-content flex-grow">
-
-
-            <div class="video-container mb-8">
-                <img id="videoStream" class="video-stream" src="" alt="Live Video Feed">
-                <div id="videoPlaceholder" class="video-placeholder">
-                    Video Stream Stopped / Loading...
+<body class="theme-dark antialiased">
+    <div class="app-wrapper">
+        <div class="app-container">
+            
+            <!-- ==========================================
+                 HEADER BAR
+                 ========================================== -->
+            <header class="app-header">
+                <div class="brand-section">
+                    <svg class="brand-logo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M2 12a10 10 0 1 1 20 0 10 10 0 0 1-20 0z"/>
+                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
+                    </svg>
+                    <span class="brand-title">SmartVision</span>
                 </div>
-            </div>
+                
+                <div class="status-indicators">
+                    <div id="connectionStatus" class="indicator-badge">
+                        <span id="connectionDot" class="indicator-dot active"></span>
+                        <span id="connectionText">SYSTEM ON</span>
+                    </div>
+                    
+                    <button id="quickMuteBtn" class="icon-btn" aria-label="Toggle voice feedback" title="Mute Announcements">
+                        <svg id="muteIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/>
+                        </svg>
+                    </button>
+                </div>
+            </header>
 
-            <div class="flex justify-center">
-                <button id="startStopButton" class="button-primary">
-                    Start Detection
+            <!-- ==========================================
+                 SCROLLABLE PANELS CONTENT
+                 ========================================== -->
+            <main class="app-content">
+
+                <!-- -----------------------------------------
+                     TAB 1: SCAN PANEL (DEFAULT)
+                     ----------------------------------------- -->
+                <div id="panel-scan" class="tab-panel active">
+                    
+                    <!-- Real-Time Camera Stream Frame -->
+                    <div id="scanViewport" class="scan-viewport">
+                        <img id="videoStream" class="video-stream-el" src="" alt="Live Video Feed">
+                        
+                        <!-- Radar Pulse Scanning Overlay -->
+                        <div id="radarOverlay" class="radar-overlay">
+                            <div class="sonar-pulse"></div>
+                            <div class="sonar-pulse"></div>
+                            <div class="sonar-pulse"></div>
+                            <div class="radar-line"></div>
+                        </div>
+                        
+                        <!-- Assistive Guidelines (Rules of Thirds Grid) -->
+                        <div id="gridOverlay" class="guideline-overlay" style="display: none;">
+                            <div></div><div></div><div></div>
+                            <div></div><div></div><div></div>
+                            <div></div><div></div><div></div>
+                        </div>
+                        
+                        <!-- HUD Badges Overlay -->
+                        <div class="viewport-hud">
+                            <div class="hud-badge live">CAMERA</div>
+                            <div id="fpsBadge" class="hud-badge">FPS: 0</div>
+                        </div>
+
+                        <!-- Camera Stopped/Loading Screen -->
+                        <div id="videoPlaceholder" class="viewport-placeholder">
+                            <svg class="placeholder-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                                <circle cx="12" cy="13" r="4"/>
+                            </svg>
+                            <div>
+                                <p style="font-weight: 800; font-size: 1.1rem; margin-bottom: 4px; color: var(--color-text-primary);">Camera Feed Suspended</p>
+                                <p style="font-size: 0.8rem; max-width: 260px; line-height: 1.4;">Tap the primary button below to activate real-time spatial object tracking.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Proximity Collision Danger Alert -->
+                    <div id="proximityAlert" class="proximity-alert-container">
+                        <svg class="proximity-alert-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                            <line x1="12" y1="9" x2="12" y2="13"/>
+                            <line x1="12" y1="17" x2="12.01" y2="17"/>
+                        </svg>
+                        <div class="proximity-text">
+                            <h4>PROXIMITY WARNING</h4>
+                            <p>Obstacle detected at very close range in front of you.</p>
+                        </div>
+                    </div>
+
+                    <!-- Scan Metrics Status Cards -->
+                    <div class="dashboard-grid">
+                        <div class="metrics-card">
+                            <span class="metric-label">Closest Object</span>
+                            <span id="closestObject" class="metric-value">Stopped</span>
+                            <div id="closestDirectionBlock" class="metric-direction" style="display: none;">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width: 14px; height: 14px;">
+                                    <polygon points="3 11 22 2 13 21 11 13 3 11"/>
+                                </svg>
+                                <span id="closestDirection">Center</span>
+                            </div>
+                        </div>
+                        <div class="metrics-card">
+                            <span class="metric-label">Distance</span>
+                            <span id="closestDistance" class="metric-value">N/A</span>
+                        </div>
+                    </div>
+
+                    <!-- Last Audio Announcement -->
+                    <div class="card">
+                        <div class="card-title">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                                <path d="M19 10v1a7 7 0 0 1-14 0v-1M12 19v4M8 23h8"/>
+                            </svg>
+                            Voice Announcement
+                        </div>
+                        <p id="announcementText" style="font-size: 1rem; line-height: 1.5; font-weight: 600; min-height: 40px; color: var(--color-text-primary);">System idle. Awaiting scan activation.</p>
+                    </div>
+
+                    <!-- Tactile Large Scan Toggle Button -->
+                    <button id="scanToggleBtn" class="primary-action-btn" aria-label="Toggle object detection scanning">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                            <polygon points="5 3 19 12 5 21 5 3"/>
+                        </svg>
+                        <span id="scanToggleText">Start Scan</span>
+                    </button>
+                    
+                </div>
+
+                <!-- -----------------------------------------
+                     TAB 2: VOCAL ASSISTANT PANEL
+                     ----------------------------------------- -->
+                <div id="panel-assistant" class="tab-panel">
+                    
+                    <!-- Chat Dialogue Log Area -->
+                    <div class="chat-transcript-area" id="chatTranscript">
+                        <div class="chat-bubble assistant">
+                            Hello, I am your voice-guided assistant. Tap the microphone button below and talk to me. You can ask: "What is in front of me?" or speak "Help" for list of options.
+                        </div>
+                    </div>
+
+                    <!-- Canvas Audio Wave Visualizer -->
+                    <div class="wave-visualizer-container">
+                        <canvas id="waveVisualizer" class="wave-visualizer-canvas" width="440" height="48"></canvas>
+                    </div>
+
+                    <!-- Interactive Voice controls -->
+                    <div class="mic-section">
+                        <div id="micBtnWrapper" class="mic-btn-container">
+                            <div class="mic-pulse-ring"></div>
+                            <div class="mic-pulse-ring"></div>
+                            <div class="mic-pulse-ring"></div>
+                            <button id="micBtn" class="mic-tap-btn" aria-label="Activate voice command recognition">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                                    <path d="M19 10v1a7 7 0 0 1-14 0v-1M12 19v4M8 23h8"/>
+                                </svg>
+                            </button>
+                        </div>
+                        <p id="micHint" class="mic-hint-text">TAP TO SPEAK</p>
+                    </div>
+                </div>
+
+                <!-- -----------------------------------------
+                     TAB 3: HISTORY PANEL
+                     ----------------------------------------- -->
+                <div id="panel-history" class="tab-panel">
+                    
+                    <div class="history-header">
+                        <h2 class="settings-section-title">Detection History</h2>
+                        <span id="historyCount" class="history-count-badge">0 items</span>
+                    </div>
+
+                    <!-- Clear log action button -->
+                    <div style="display: flex; justify-content: flex-end;">
+                        <button id="clearHistoryBtn" class="text-action-btn danger">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 14px; height: 14px;">
+                                <polyline points="3 6 5 6 21 6"/>
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                            </svg>
+                            Clear History
+                        </button>
+                    </div>
+
+                    <!-- History List Container -->
+                    <div id="historyList" class="history-list">
+                        <!-- Filled dynamically by JavaScript -->
+                        <div class="history-empty-state">
+                            <svg class="history-empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"/>
+                                <line x1="12" y1="8" x2="12" y2="12"/>
+                                <line x1="12" y1="16" x2="12.01" y2="16"/>
+                            </svg>
+                            <p style="font-weight: 700; font-size: 1rem; color: var(--color-text-primary);">No Detections Logged</p>
+                            <p style="font-size: 0.78rem; max-width: 220px; line-height: 1.4;">Active objects detected during scan will appear in this log.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- -----------------------------------------
+                     TAB 4: SETTINGS PANEL
+                     ----------------------------------------- -->
+                <div id="panel-settings" class="tab-panel">
+                    
+                    <!-- Section 1: Accessibility Themes -->
+                    <h2 class="settings-section-title">A11y Visual System</h2>
+                    <div class="card settings-grid">
+                        <div class="setting-col">
+                            <label class="setting-label-block" for="contrastSelect">
+                                <span class="setting-label-text">Theme Contrast</span>
+                                <span class="setting-helper-text">Select visual density fit for your eyes.</span>
+                            </label>
+                            <select id="contrastSelect" class="select-input">
+                                <option value="dark">Default Premium Dark</option>
+                                <option value="high-contrast">Yellow High Contrast</option>
+                                <option value="light">Soft Light Mode</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Section 2: Audio & Sonar Feedback -->
+                    <h2 class="settings-section-title">Feedback Preferences</h2>
+                    <div class="card settings-grid">
+                        <div class="setting-row">
+                            <div class="setting-label-block">
+                                <span class="setting-label-text">Sonar Proximity Beeps</span>
+                                <span class="setting-helper-text">Sonar ping frequency accelerates as obstacles approach.</span>
+                            </div>
+                            <label class="switch-control" for="sonarSwitch">
+                                <input type="checkbox" id="sonarSwitch" checked>
+                                <span class="switch-slider"></span>
+                            </label>
+                        </div>
+                        
+                        <div class="setting-row">
+                            <div class="setting-label-block">
+                                <span class="setting-label-text">Automated Text Announcements</span>
+                                <span class="setting-helper-text">Verbally describes stable objects seen.</span>
+                            </div>
+                            <label class="switch-control" for="speechSwitch">
+                                <input type="checkbox" id="speechSwitch" checked>
+                                <span class="switch-slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="setting-col">
+                            <label class="setting-label-block" for="cooldownSlider">
+                                <span class="setting-label-text">Speech Announcement Cooldown</span>
+                                <span class="setting-helper-text">Minimum delay between auto statements.</span>
+                            </label>
+                            <div class="slider-container">
+                                <input type="range" id="cooldownSlider" class="slider-input" min="2" max="10" step="1" value="5">
+                                <span id="cooldownValue" class="slider-value-display">5s</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section 3: Speech Synthesis Engine -->
+                    <h2 class="settings-section-title">Speech Engine Configuration</h2>
+                    <div class="card settings-grid">
+                        <div class="setting-col">
+                            <label class="setting-label-block" for="voiceSelect">
+                                <span class="setting-label-text">Voice Profile</span>
+                                <span class="setting-helper-text">Select preferred Speech Synthesis voice.</span>
+                            </label>
+                            <select id="voiceSelect" class="select-input">
+                                <option value="default">System Default Voice</option>
+                            </select>
+                        </div>
+
+                        <div class="setting-col">
+                            <label class="setting-label-block" for="rateSlider">
+                                <span class="setting-label-text">Speech Rate</span>
+                                <span class="setting-helper-text">Adjust speech delivery pace.</span>
+                            </label>
+                            <div class="slider-container">
+                                <input type="range" id="rateSlider" class="slider-input" min="0.5" max="2.0" step="0.1" value="1.0">
+                                <span id="rateValue" class="slider-value-display">1.0x</span>
+                            </div>
+                        </div>
+
+                        <div class="setting-col">
+                            <label class="setting-label-block" for="pitchSlider">
+                                <span class="setting-label-text">Speech Pitch</span>
+                                <span class="setting-helper-text">Adjust speech frequency pitch.</span>
+                            </label>
+                            <div class="slider-container">
+                                <input type="range" id="pitchSlider" class="slider-input" min="0.5" max="2.0" step="0.1" value="1.0">
+                                <span id="pitchValue" class="slider-value-display">1.0x</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section 4: Overlay overlays -->
+                    <h2 class="settings-section-title">Overlay Elements</h2>
+                    <div class="card settings-grid">
+                        <div class="setting-row">
+                            <div class="setting-label-block">
+                                <span class="setting-label-text">Show Framing Grid</span>
+                                <span class="setting-helper-text">Rule of thirds grid helper in scanner view.</span>
+                            </div>
+                            <label class="switch-control" for="gridSwitch">
+                                <input type="checkbox" id="gridSwitch">
+                                <span class="switch-slider"></span>
+                            </label>
+                        </div>
+                        
+                        <div class="setting-row">
+                            <div class="setting-label-block">
+                                <span class="setting-label-text">Show Radar Waves Overlay</span>
+                                <span class="setting-helper-text">Scanning ring animation overlay.</span>
+                            </div>
+                            <label class="switch-control" for="radarSwitch">
+                                <input type="checkbox" id="radarSwitch" checked>
+                                <span class="switch-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                </div>
+            </main>
+
+            <!-- ==========================================
+                 BOTTOM NAVIGATION TAB BAR
+                 ========================================== -->
+            <nav class="bottom-nav">
+                <button id="navBtn-scan" class="nav-item active" aria-label="Go to Scan Screen">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
+                    </svg>
+                    <span class="nav-label">Scan</span>
                 </button>
-            </div>
-        </div>
+                
+                <button id="navBtn-assistant" class="nav-item" aria-label="Go to Voice Assistant Screen">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                        <line x1="9" y1="10" x2="15" y2="10"/>
+                        <line x1="9" y1="14" x2="13" y2="14"/>
+                    </svg>
+                    <span class="nav-label">Assistant</span>
+                </button>
+                
+                <button id="navBtn-history" class="nav-item" aria-label="Go to Detections History Screen">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                        <line x1="16" y1="13" x2="8" y2="13"/>
+                        <line x1="16" y1="17" x2="8" y2="17"/>
+                        <polyline points="10 9 9 9 8 9"/>
+                    </svg>
+                    <span class="nav-label">History</span>
+                </button>
+                
+                <button id="navBtn-settings" class="nav-item" aria-label="Go to Settings Screen">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                    </svg>
+                    <span class="nav-label">Settings</span>
+                </button>
+            </nav>
 
-        <div class="sidebar">
-            <div class="info-card">
-                <h2 class="text-2xl font-bold text-gray-800 mb-4 flex items-center">
-                    <!-- Icon for System Status (Lightning Bolt) -->
-                    <svg class="w-7 h-7 mr-3 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-                    System Status
-                </h2>
-                <div class="space-y-4">
-                    <p class="flex justify-between items-center text-lg">
-                        <strong class="text-gray-700">FPS:</strong>
-                        <span id="fpsDisplay" class="font-semibold text-gray-900">Stopped</span>
-                    </p>
-                    <p class="flex justify-between items-center text-lg">
-                        <strong class="text-gray-700">Closest Object:</strong>
-                        <span id="closestObjectDisplay" class="font-semibold text-gray-900">Stopped</span>
-                    </p>
-                    <p class="flex justify-between items-center text-lg">
-                        <strong class="text-gray-700">Distance:</strong>
-                        <span id="closestDistanceDisplay" class="font-semibold text-gray-900">Stopped</span>
-                    </p>
-                </div>
-            </div>
-
-            <div class="info-card">
-                <h2 class="text-2xl font-bold text-gray-800 mb-4 flex items-center">
-                    <!-- Icon for Audio Feedback (Speaker) -->
-                    <svg class="w-7 h-7 mr-3 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.899a9 9 0 010 12.728M5.636 18.364A9 9 0 0112 12m-7.071 7.071A5 5 0 0112 12"></path></svg>
-                    Audio Feedback
-                </h2>
-                <div class="space-y-4">
-                    <p class="text-lg">
-                        <strong class="text-gray-700">Last Announcement:</strong>
-                        <span id="lastAnnouncementDisplay" class="font-semibold text-gray-900">None</span>
-                    </p>
-                    <p class="text-sm text-gray-500 mt-2">
-                        (Audio announcements will play automatically if your browser allows. Ensure sound is enabled.)
-                    </p>
-                </div>
-            </div>
         </div>
     </div>
 
+    <!-- ==========================================
+         JAVASCRIPT LOGIC
+         ========================================== -->
     <script>
-        const videoStream = document.getElementById('videoStream');
-        const videoPlaceholder = document.getElementById('videoPlaceholder');
-        const startStopButton = document.getElementById('startStopButton');
-        const fpsDisplay = document.getElementById('fpsDisplay');
-        const closestObjectDisplay = document.getElementById('closestObjectDisplay');
-        const closestDistanceDisplay = document.getElementById('closestDistanceDisplay');
-        const lastAnnouncementDisplay = document.getElementById('lastAnnouncementDisplay');
-
+        // --- Core Application State ---
         let isDetecting = false;
         let audioIntervalId = null;
         let statusIntervalId = null;
-        let speechSynthesisUtterance = null;
         let lastSpokenAnnouncement = "";
+        let currentDistanceMeters = 0.0;
+        let proximityWarningActive = false;
+        let speechMuted = false;
+        
+        // --- Lists/Logs ---
+        let detectionHistory = [];
 
-        // Function to speak text using Web Speech API
-        function speakText(text) {
-            if ('speechSynthesis' in window) {
-                if (speechSynthesisUtterance) {
-                    window.speechSynthesis.cancel(); // Stop any ongoing speech
+        // --- Web Audio Context for sonar proximity beeps ---
+        let audioCtx = null;
+        let sonarTimeoutId = null;
+
+        // --- Voice Command Speech Recognition ---
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        let recognition = null;
+        let isListening = false;
+        let waveAnimationId = null;
+
+        // --- User Config (persists to localStorage) ---
+        let settings = {
+            theme: 'dark',
+            sonarEnabled: true,
+            speechEnabled: true,
+            cooldown: 5,
+            speechVoice: 'default',
+            speechRate: 1.0,
+            speechPitch: 1.0,
+            overlayGrid: false,
+            overlayRadar: true
+        };
+
+        // --- DOM Elements ---
+        const videoStream = document.getElementById('videoStream');
+        const videoPlaceholder = document.getElementById('videoPlaceholder');
+        const scanToggleBtn = document.getElementById('scanToggleBtn');
+        const scanToggleText = document.getElementById('scanToggleText');
+        const scanViewport = document.getElementById('scanViewport');
+        const radarOverlay = document.getElementById('radarOverlay');
+        const gridOverlay = document.getElementById('gridOverlay');
+        const connectionDot = document.getElementById('connectionDot');
+        
+        const fpsBadge = document.getElementById('fpsBadge');
+        const closestObject = document.getElementById('closestObject');
+        const closestDistance = document.getElementById('closestDistance');
+        const closestDirection = document.getElementById('closestDirection');
+        const closestDirectionBlock = document.getElementById('closestDirectionBlock');
+        const announcementText = document.getElementById('announcementText');
+        const proximityAlert = document.getElementById('proximityAlert');
+        const quickMuteBtn = document.getElementById('quickMuteBtn');
+        const muteIcon = document.getElementById('muteIcon');
+        
+        // Navigation panels
+        const panels = {
+            scan: document.getElementById('panel-scan'),
+            assistant: document.getElementById('panel-assistant'),
+            history: document.getElementById('panel-history'),
+            settings: document.getElementById('panel-settings')
+        };
+        const navBtns = {
+            scan: document.getElementById('navBtn-scan'),
+            assistant: document.getElementById('navBtn-assistant'),
+            history: document.getElementById('navBtn-history'),
+            settings: document.getElementById('navBtn-settings')
+        };
+
+        // Settings inputs
+        const contrastSelect = document.getElementById('contrastSelect');
+        const sonarSwitch = document.getElementById('sonarSwitch');
+        const speechSwitch = document.getElementById('speechSwitch');
+        const cooldownSlider = document.getElementById('cooldownSlider');
+        const cooldownValue = document.getElementById('cooldownValue');
+        const voiceSelect = document.getElementById('voiceSelect');
+        const rateSlider = document.getElementById('rateSlider');
+        const rateValue = document.getElementById('rateValue');
+        const pitchSlider = document.getElementById('pitchSlider');
+        const pitchValue = document.getElementById('pitchValue');
+        const gridSwitch = document.getElementById('gridSwitch');
+        const radarSwitch = document.getElementById('radarSwitch');
+
+        // History UI
+        const historyList = document.getElementById('historyList');
+        const historyCount = document.getElementById('historyCount');
+        const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+
+        // Assistant UI
+        const chatTranscript = document.getElementById('chatTranscript');
+        const micBtn = document.getElementById('micBtn');
+        const micBtnWrapper = document.getElementById('micBtnWrapper');
+        const micHint = document.getElementById('micHint');
+        const waveCanvas = document.getElementById('waveVisualizer');
+        let waveCtx = null;
+
+        // ==========================================
+        // INITIALIZATION & PERSISTENCE
+        // ==========================================
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            loadSettings();
+            initTabNavigation();
+            initWebSpeechSynthesis();
+            initSettingsInputListeners();
+            initSpeechRecognition();
+            initHistoryListeners();
+            initQuickMuteListener();
+            
+            // Start Canvas animation loop (idle wave)
+            if (waveCanvas) {
+                waveCtx = waveCanvas.getContext('2d');
+                drawIdleWave();
+            }
+            
+            // Initial Stop state
+            stopDetection();
+        });
+
+        // Load settings from localStorage
+        function loadSettings() {
+            const savedSettings = localStorage.getItem('smartvision_settings');
+            if (savedSettings) {
+                try {
+                    settings = { ...settings, ...JSON.parse(savedSettings) };
+                } catch(e) {
+                    console.error("Error reading storage settings", e);
                 }
-                speechSynthesisUtterance = new SpeechSynthesisUtterance(text);
-                speechSynthesisUtterance.lang = 'en-US'; // Set language
-                speechSynthesisUtterance.rate = 1.0; // Speed of speech
-                speechSynthesisUtterance.pitch = 1.0; // Pitch of speech
+            }
+            applySettingsToUI();
+        }
 
-                // Optional: Select a voice if available
-                const voices = window.speechSynthesis.getVoices();
-                const preferredVoice = voices.find(voice => voice.name === 'Google US English'); // Example voice
-                if (preferredVoice) {
-                    speechSynthesisUtterance.voice = preferredVoice;
-                }
+        function saveSettings() {
+            localStorage.setItem('smartvision_settings', JSON.stringify(settings));
+        }
 
-                window.speechSynthesis.speak(speechSynthesisUtterance);
+        // Apply settings to actual browser elements
+        function applySettingsToUI() {
+            // Theme setting
+            document.body.className = ''; // reset
+            if (settings.theme === 'high-contrast') {
+                document.body.classList.add('theme-high-contrast');
+            } else if (settings.theme === 'light') {
+                document.body.classList.add('theme-light');
             } else {
-                console.warn("Web Speech API not supported in this browser.");
+                document.body.classList.add('theme-dark');
+            }
+            contrastSelect.value = settings.theme;
+
+            // Switches
+            sonarSwitch.checked = settings.sonarEnabled;
+            speechSwitch.checked = settings.speechEnabled;
+            gridSwitch.checked = settings.overlayGrid;
+            radarSwitch.checked = settings.overlayRadar;
+
+            // Overlays
+            gridOverlay.style.display = settings.overlayGrid ? 'grid' : 'none';
+            radarOverlay.style.display = settings.overlayRadar ? 'block' : 'none';
+
+            // Sliders
+            cooldownSlider.value = settings.cooldown;
+            cooldownValue.textContent = `${settings.cooldown}s`;
+
+            rateSlider.value = settings.speechRate;
+            rateValue.textContent = `${settings.speechRate}x`;
+
+            pitchSlider.value = settings.pitchPitch || settings.speechPitch;
+            pitchValue.textContent = `${settings.pitchPitch || settings.speechPitch}x`;
+        }
+
+        // Bind sliders, switches, dropdown updates to settings object
+        function initSettingsInputListeners() {
+            contrastSelect.addEventListener('change', (e) => {
+                settings.theme = e.target.value;
+                document.body.className = '';
+                if (settings.theme === 'high-contrast') {
+                    document.body.classList.add('theme-high-contrast');
+                } else if (settings.theme === 'light') {
+                    document.body.classList.add('theme-light');
+                } else {
+                    document.body.classList.add('theme-dark');
+                }
+                saveSettings();
+                playHapticFeedback(10);
+            });
+
+            sonarSwitch.addEventListener('change', (e) => {
+                settings.sonarEnabled = e.target.checked;
+                saveSettings();
+                if (isDetecting && settings.sonarEnabled) {
+                    scheduleNextSonarPing();
+                } else if (sonarTimeoutId) {
+                    clearTimeout(sonarTimeoutId);
+                }
+            });
+
+            speechSwitch.addEventListener('change', (e) => {
+                settings.speechEnabled = e.target.checked;
+                saveSettings();
+            });
+
+            gridSwitch.addEventListener('change', (e) => {
+                settings.overlayGrid = e.target.checked;
+                gridOverlay.style.display = settings.overlayGrid ? 'grid' : 'none';
+                saveSettings();
+            });
+
+            radarSwitch.addEventListener('change', (e) => {
+                settings.overlayRadar = e.target.checked;
+                radarOverlay.style.display = (settings.overlayRadar && isDetecting) ? 'block' : 'none';
+                saveSettings();
+            });
+
+            cooldownSlider.addEventListener('input', (e) => {
+                settings.cooldown = parseInt(e.target.value);
+                cooldownValue.textContent = `${settings.cooldown}s`;
+                saveSettings();
+            });
+
+            rateSlider.addEventListener('input', (e) => {
+                settings.speechRate = parseFloat(e.target.value);
+                rateValue.textContent = `${settings.speechRate}x`;
+                saveSettings();
+            });
+
+            pitchSlider.addEventListener('input', (e) => {
+                settings.speechPitch = parseFloat(e.target.value);
+                pitchValue.textContent = `${settings.speechPitch}x`;
+                saveSettings();
+            });
+
+            voiceSelect.addEventListener('change', (e) => {
+                settings.speechVoice = e.target.value;
+                saveSettings();
+            });
+        }
+
+        // ==========================================
+        // TABS NAVIGATION CONTROLLER
+        // ==========================================
+        
+        function initTabNavigation() {
+            Object.keys(navBtns).forEach(tab => {
+                navBtns[tab].addEventListener('click', () => {
+                    switchTab(tab);
+                });
+            });
+        }
+
+        function switchTab(tabId) {
+            // Deactivate all nav buttons and panels
+            Object.keys(navBtns).forEach(tab => {
+                navBtns[tab].classList.remove('active');
+                panels[tab].classList.remove('active');
+            });
+
+            // Activate chosen tab
+            navBtns[tabId].classList.add('active');
+            panels[tabId].classList.add('active');
+            
+            // Trigger haptic button press
+            playHapticFeedback(15);
+            
+            // If settings tab, re-populate voice dropdown
+            if (tabId === 'settings') {
+                populateVoiceList();
             }
         }
 
-        // Function to fetch and play audio announcements
+        // Haptic feedback API simulation/util
+        function playHapticFeedback(durationMs) {
+            if ('vibrate' in navigator) {
+                navigator.vibrate(durationMs);
+            }
+        }
+
+        // ==========================================
+        // TEXT-TO-SPEECH (TTS) ENGINE
+        // ==========================================
+        
+        let preferredVoice = null;
+        let synthesisUtterance = null;
+
+        function initWebSpeechSynthesis() {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.getVoices();
+                window.speechSynthesis.onvoiceschanged = () => {
+                    populateVoiceList();
+                };
+            }
+        }
+
+        function populateVoiceList() {
+            if (typeof speechSynthesis === 'undefined') return;
+            
+            const voices = speechSynthesis.getVoices();
+            voiceSelect.innerHTML = '';
+            
+            const defaultOpt = document.createElement('option');
+            defaultOpt.value = 'default';
+            defaultOpt.textContent = 'System Default Voice';
+            voiceSelect.appendChild(defaultOpt);
+            
+            voices.forEach(voice => {
+                const option = document.createElement('option');
+                option.textContent = `${voice.name} (${voice.lang})`;
+                option.value = voice.name;
+                
+                if (voice.name === settings.speechVoice) {
+                    option.selected = true;
+                }
+                voiceSelect.appendChild(option);
+            });
+        }
+
+        // Speaks text with customized settings
+        function speakText(text) {
+            if (speechMuted || !settings.speechEnabled) return;
+            
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel(); // kill active speech to prevent overlap
+                
+                synthesisUtterance = new SpeechSynthesisUtterance(text);
+                synthesisUtterance.rate = settings.speechRate;
+                synthesisUtterance.pitch = settings.speechPitch;
+                
+                // Set Selected Voice
+                if (settings.speechVoice !== 'default') {
+                    const voices = window.speechSynthesis.getVoices();
+                    const chosen = voices.find(v => v.name === settings.speechVoice);
+                    if (chosen) synthesisUtterance.voice = chosen;
+                }
+                
+                window.speechSynthesis.speak(synthesisUtterance);
+            }
+        }
+
+        // Speak local assistant logs (override toggle check for assistant responses)
+        function speakTextLocal(text) {
+            if (speechMuted) return;
+            
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.rate = settings.speechRate;
+                utterance.pitch = settings.speechPitch;
+                
+                if (settings.speechVoice !== 'default') {
+                    const voices = window.speechSynthesis.getVoices();
+                    const chosen = voices.find(v => v.name === settings.speechVoice);
+                    if (chosen) utterance.voice = chosen;
+                }
+                
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        // Quick mute voice action
+        function initQuickMuteListener() {
+            quickMuteBtn.addEventListener('click', () => {
+                speechMuted = !speechMuted;
+                playHapticFeedback(25);
+                
+                if (speechMuted) {
+                    quickMuteBtn.classList.add('muted');
+                    quickMuteBtn.style.color = 'var(--color-danger)';
+                    quickMuteBtn.style.borderColor = 'var(--color-danger)';
+                    muteIcon.innerHTML = `
+                        <line x1="1" y1="1" x2="23" y2="23" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                    `;
+                    if ('speechSynthesis' in window) {
+                        window.speechSynthesis.cancel();
+                    }
+                } else {
+                    quickMuteBtn.classList.remove('muted');
+                    quickMuteBtn.style.color = 'var(--color-text-primary)';
+                    quickMuteBtn.style.borderColor = 'var(--border-card)';
+                    muteIcon.innerHTML = `
+                        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                        <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/>
+                    `;
+                    speakTextLocal("Voice feedback enabled");
+                }
+            });
+        }
+
+        // ==========================================
+        // SPATIAL SONAR BEERING ENGINE (WEB AUDIO)
+        // ==========================================
+        
+        function playSonarPing(distance) {
+            if (!settings.sonarEnabled) return;
+            
+            try {
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                
+                // Proximity range 0.1m - 2.0m maps to pitch 600Hz - 1100Hz
+                const minD = 0.1;
+                const maxD = 2.0;
+                const d = Math.max(minD, Math.min(maxD, distance));
+                const ratio = (maxD - d) / (maxD - minD); // 0 (far) to 1 (very close)
+                
+                const frequency = 580 + ratio * 520; // 580Hz to 1100Hz
+                osc.frequency.setValueAtTime(frequency, audioCtx.currentTime);
+                
+                // Decay envelope: quicker decay when close to sound punchier
+                const beepDuration = 0.08 + (1 - ratio) * 0.07; // 0.08s to 0.15s
+                
+                gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + beepDuration);
+                
+                osc.start(audioCtx.currentTime);
+                osc.stop(audioCtx.currentTime + beepDuration + 0.02);
+            } catch(err) {
+                console.error("Audio Context Sonar failed to play sound", err);
+            }
+        }
+
+        // Dynamically repeating timer for sonar beeps based on distance
+        function scheduleNextSonarPing() {
+            if (sonarTimeoutId) clearTimeout(sonarTimeoutId);
+            
+            if (!isDetecting || !settings.sonarEnabled) return;
+            
+            const distanceVal = parseFloat(currentDistanceMeters);
+            if (!isNaN(distanceVal) && distanceVal <= 2.0) {
+                playSonarPing(distanceVal);
+                
+                // Repeat pace:
+                // < 0.5m: 160ms (rapid alarm)
+                // < 1.0m: 320ms (urgent)
+                // < 1.5m: 600ms (medium)
+                // < 2.0m: 950ms (slow)
+                let delay = 1000;
+                if (distanceVal < 0.5) {
+                    delay = 160;
+                } else if (distanceVal < 1.0) {
+                    delay = 320;
+                } else if (distanceVal < 1.5) {
+                    delay = 600;
+                } else {
+                    delay = 950;
+                }
+                
+                sonarTimeoutId = setTimeout(scheduleNextSonarPing, delay);
+            } else {
+                // If out of range or idle, check again in 1 second
+                sonarTimeoutId = setTimeout(scheduleNextSonarPing, 1000);
+            }
+        }
+
+        // ==========================================
+        // FLASK BACKEND SCANNING INTEGRATION
+        // ==========================================
+        
+        // Starts the scanning pipeline
+        function startDetection() {
+            if (isDetecting) return;
+            
+            // Visual viewport swap
+            videoStream.style.display = 'block';
+            videoPlaceholder.style.display = 'none';
+            scanViewport.classList.add('active');
+            if (settings.overlayRadar) radarOverlay.style.display = 'block';
+            
+            // Set source endpoint
+            videoStream.src = "{{ url_for('video_feed') }}";
+            
+            videoStream.onerror = () => {
+                console.error("Webcam video feed server connection failed.");
+                showCustomModal("Connection Error", "Webcam feed failed to load. Check that your camera isn't occupied and the Flask server is running.");
+                stopDetection();
+            };
+
+            // Start intervals: announcements and metrics status
+            audioIntervalId = setInterval(fetchAudioAnnouncement, 1000);
+            statusIntervalId = setInterval(fetchStatus, 450);
+
+            // Set buttons active state
+            scanToggleBtn.classList.add('active');
+            scanToggleText.textContent = "Stop Scan";
+            isDetecting = true;
+            
+            connectionDot.classList.add('active');
+            
+            // Start Sonar repeat timer
+            if (settings.sonarEnabled) {
+                scheduleNextSonarPing();
+            }
+
+            speakTextLocal("Scanning activated");
+            playHapticFeedback(40);
+        }
+
+        // Stops the scanning pipeline
+        function stopDetection() {
+            if (!isDetecting) {
+                // Set initial visual elements on page load
+                videoStream.src = "";
+                videoStream.style.display = 'none';
+                videoPlaceholder.style.display = 'flex';
+                scanViewport.classList.remove('active', 'danger-alert');
+                radarOverlay.style.display = 'none';
+                proximityAlert.classList.remove('show');
+                return;
+            }
+
+            // Clear intervals & timeouts
+            if (audioIntervalId) clearInterval(audioIntervalId);
+            if (statusIntervalId) clearInterval(statusIntervalId);
+            if (sonarTimeoutId) clearTimeout(sonarTimeoutId);
+            
+            audioIntervalId = null;
+            statusIntervalId = null;
+            sonarTimeoutId = null;
+
+            // Reset stream and overlays
+            videoStream.src = "";
+            videoStream.style.display = 'none';
+            videoPlaceholder.style.display = 'flex';
+            scanViewport.classList.remove('active', 'danger-alert');
+            radarOverlay.style.display = 'none';
+            proximityAlert.classList.remove('show');
+
+            // Reset dashboard fields
+            fpsBadge.textContent = "FPS: 0";
+            closestObject.textContent = "Stopped";
+            closestDistance.textContent = "N/A";
+            closestDirection.textContent = "Center";
+            closestDirectionBlock.style.display = 'none';
+            announcementText.textContent = "System idle. Scan stopped.";
+            
+            currentDistanceMeters = 0.0;
+            proximityWarningActive = false;
+
+            // Reset Toggle buttons
+            scanToggleBtn.classList.remove('active');
+            scanToggleText.textContent = "Start Scan";
+            isDetecting = false;
+            
+            connectionDot.classList.remove('active');
+
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+            }
+            
+            speakTextLocal("Scanning stopped");
+            playHapticFeedback(40);
+        }
+
+        // Poll vocal announcements from Flask backend queue
         async function fetchAudioAnnouncement() {
             try {
                 const response = await fetch('/get_announcement');
@@ -245,118 +959,66 @@
                 const announcement = data.announcement;
 
                 if (announcement && announcement !== lastSpokenAnnouncement) {
-                    lastAnnouncementDisplay.textContent = announcement;
+                    announcementText.textContent = announcement;
                     speakText(announcement);
                     lastSpokenAnnouncement = announcement;
                 }
             } catch (error) {
-                console.error("Error fetching audio announcement:", error);
+                console.error("Error fetching announcements:", error);
             }
         }
 
-        // Function to fetch and update status
+        // Poll status metrics from Flask backend
         async function fetchStatus() {
             try {
                 const response = await fetch('/get_status');
                 const data = await response.json();
-                fpsDisplay.textContent = data.fps;
-                closestObjectDisplay.textContent = data.closest_object;
-                closestDistanceDisplay.textContent = data.closest_distance;
+                
+                fpsBadge.textContent = `FPS: ${data.fps}`;
+                closestObject.textContent = data.closest_object;
+                closestDistance.textContent = data.closest_distance;
+                
+                currentDistanceMeters = data.closest_distance;
+                
+                // Show relative horizontal direction in panel UI
+                if (data.closest_object !== 'None' && data.closest_direction !== 'N/A') {
+                    closestDirection.textContent = data.closest_direction;
+                    closestDirectionBlock.style.display = 'flex';
+                    
+                    // Proactively log to history log list
+                    logDetectionToHistory(data.closest_object, data.closest_distance, data.closest_direction);
+                } else {
+                    closestDirectionBlock.style.display = 'none';
+                }
+
+                // Check proximity warning triggers
+                const distVal = parseFloat(data.closest_distance);
+                if (!isNaN(distVal) && distVal < 1.0) {
+                    if (!proximityWarningActive) {
+                        scanViewport.classList.add('danger-alert');
+                        proximityAlert.classList.add('show');
+                        playHapticFeedback([100, 50, 100]);
+                        proximityWarningActive = true;
+                    }
+                } else {
+                    if (proximityWarningActive) {
+                        scanViewport.classList.remove('danger-alert');
+                        proximityAlert.classList.remove('show');
+                        proximityWarningActive = false;
+                    }
+                }
+
             } catch (error) {
-                console.error("Error fetching status:", error);
-                fpsDisplay.textContent = "Error";
-                closestObjectDisplay.textContent = "Error";
-                closestDistanceDisplay.textContent = "Error";
+                console.error("Error fetching status metrics:", error);
+                fpsBadge.textContent = "FPS: Err";
+                closestObject.textContent = "Error";
+                closestDistance.textContent = "Error";
+                closestDirectionBlock.style.display = 'none';
             }
         }
 
-        // Function to start detection
-        function startDetection() {
-            if (isDetecting) return;
-
-            // Show video stream, hide placeholder
-            videoStream.style.display = 'block';
-            videoPlaceholder.style.display = 'none';
-            videoStream.src = "{{ url_for('video_feed') }}";
-            videoStream.onerror = () => {
-                console.error("Failed to load video stream. Ensure Flask server is running and webcam is accessible.");
-                // Using a custom message box instead of alert
-                showMessageBox("Error", "Could not start video stream. Please check server logs and webcam access.");
-                stopDetection();
-            };
-
-            // Start polling for audio announcements every 1 second
-            audioIntervalId = setInterval(fetchAudioAnnouncement, 1000);
-            // Start polling for status updates every 500ms
-            statusIntervalId = setInterval(fetchStatus, 500);
-
-            startStopButton.textContent = "Stop Detection";
-            startStopButton.classList.remove('bg-green-500', 'hover:bg-green-600');
-            startStopButton.classList.add('bg-red-500'); /* Use class for red gradient */
-            isDetecting = true;
-            console.log("Detection started.");
-        }
-
-        // Function to stop detection
-        function stopDetection() {
-            if (!isDetecting) return;
-
-            // Stop video stream by setting src to an empty string or placeholder
-            videoStream.src = "";
-            videoStream.style.display = 'none'; // Hide video
-            videoPlaceholder.style.display = 'flex'; // Show placeholder
-            videoStream.alt = "Video stream stopped.";
-
-            // Clear intervals
-            if (audioIntervalId) {
-                clearInterval(audioIntervalId);
-                audioIntervalId = null;
-            }
-            if (statusIntervalId) {
-                clearInterval(statusIntervalId);
-                statusIntervalId = null;
-            }
-
-            // Cancel any ongoing speech
-            if ('speechSynthesis' in window && speechSynthesisUtterance) {
-                window.speechSynthesis.cancel();
-            }
-
-            startStopButton.textContent = "Start Detection";
-            startStopButton.classList.remove('bg-red-500'); /* Remove red gradient class */
-            startStopButton.classList.add('bg-green-500', 'hover:bg-green-600');
-            isDetecting = false;
-            console.log("Detection stopped.");
-
-            // Reset displays
-            fpsDisplay.textContent = "Stopped";
-            closestObjectDisplay.textContent = "Stopped";
-            closestDistanceDisplay.textContent = "Stopped";
-            lastAnnouncementDisplay.textContent = "None";
-            lastSpokenAnnouncement = "";
-        }
-
-        // Custom Message Box (replaces alert)
-        function showMessageBox(title, message) {
-            const messageBoxHtml = `
-                <div id="customMessageBox" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50">
-                    <div class="bg-white p-8 rounded-lg shadow-xl max-w-sm w-full text-center">
-                        <h3 class="text-xl font-bold mb-4 text-gray-800">${title}</h3>
-                        <p class="text-gray-700 mb-6">${message}</p>
-                        <button id="messageBoxCloseButton" class="button-primary !bg-blue-500 !hover:bg-blue-600">OK</button>
-                    </div>
-                </div>
-            `;
-            document.body.insertAdjacentHTML('beforeend', messageBoxHtml);
-
-            document.getElementById('messageBoxCloseButton').addEventListener('click', () => {
-                document.getElementById('customMessageBox').remove();
-            });
-        }
-
-
-        // Event listener for the start/stop button
-        startStopButton.addEventListener('click', () => {
+        // Start/Stop Scan button trigger
+        scanToggleBtn.addEventListener('click', () => {
             if (isDetecting) {
                 stopDetection();
             } else {
@@ -364,17 +1026,438 @@
             }
         });
 
-        // Initial state: set button to "Start Detection" and stop any active streams
-        document.addEventListener('DOMContentLoaded', () => {
-            stopDetection(); // Ensure it starts in a stopped state
-            // Pre-fetch voices for faster speech synthesis
-            if ('speechSynthesis' in window) {
-                window.speechSynthesis.getVoices();
-                window.speechSynthesis.onvoiceschanged = () => {
-                    window.speechSynthesis.getVoices();
-                };
+        // ==========================================
+        // DETECTION HISTORY LOGGER
+        // ==========================================
+        
+        function logDetectionToHistory(className, distance, direction) {
+            if (className === 'None' || className === 'Error') return;
+            
+            const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            
+            // Check if last item was identical to avoid flooding logs
+            if (detectionHistory.length > 0) {
+                const last = detectionHistory[0];
+                if (last.className === className && last.direction === direction) {
+                    // Just update the distance and time, don't append a new card
+                    last.distance = distance;
+                    last.timestamp = timestamp;
+                    renderHistoryList();
+                    return;
+                }
             }
-        });
+
+            // Append to beginning of array
+            detectionHistory.unshift({ className, distance, direction, timestamp });
+            
+            // Limit to max 25 history entries
+            if (detectionHistory.length > 25) {
+                detectionHistory.pop();
+            }
+
+            renderHistoryList();
+        }
+
+        function renderHistoryList() {
+            historyCount.textContent = `${detectionHistory.length} items`;
+            
+            if (detectionHistory.length === 0) {
+                historyList.innerHTML = `
+                    <div class="history-empty-state">
+                        <svg class="history-empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="12" y1="8" x2="12" y2="12"/>
+                            <line x1="12" y1="16" x2="12.01" y2="16"/>
+                        </svg>
+                        <p style="font-weight: 700; font-size: 1rem; color: var(--color-text-primary);">No Detections Logged</p>
+                        <p style="font-size: 0.78rem; max-width: 220px; line-height: 1.4;">Active objects detected during scan will appear in this log.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+            detectionHistory.forEach((item, idx) => {
+                const distVal = parseFloat(item.distance);
+                const isClose = !isNaN(distVal) && distVal < 1.0;
+                const dirDisplay = item.direction ? item.direction : 'Center';
+                
+                html += `
+                    <div class="history-item ${isClose ? 'close-range' : ''}">
+                        <div class="history-item-left">
+                            <div class="history-icon-circle">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                                    <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+                                    <line x1="12" y1="22.08" x2="12" y2="12"/>
+                                </svg>
+                            </div>
+                            <div class="history-details">
+                                <span class="history-item-title">${item.className}</span>
+                                <span class="history-item-subtitle">
+                                    Dist: ${item.distance} | Pos: ${dirDisplay}
+                                </span>
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <span class="history-time">${item.timestamp}</span>
+                            <button class="icon-btn" onclick="playHistoryItemSpeech('${item.className}', '${item.distance}', '${item.direction}')" aria-label="Announce item details verbally">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                                    <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            historyList.innerHTML = html;
+        }
+
+        // Play history item speak button callback
+        window.playHistoryItemSpeech = function(className, distance, direction) {
+            playHapticFeedback(15);
+            let dirWord = "in front of you";
+            if (direction === 'Left') dirWord = "on your left";
+            if (direction === 'Right') dirWord = "on your right";
+            
+            const speakTextString = `Detection details. ${className}, ${dirWord}, at ${distance}.`;
+            speakTextLocal(speakTextString);
+        };
+
+        function initHistoryListeners() {
+            clearHistoryBtn.addEventListener('click', () => {
+                detectionHistory = [];
+                playHapticFeedback(30);
+                renderHistoryList();
+                speakTextLocal("History logs cleared");
+            });
+        }
+
+        // ==========================================
+        // VOCAL COMMAND ASSISTANT (SPEECH REC)
+        // ==========================================
+        
+        function initSpeechRecognition() {
+            if (SpeechRecognition) {
+                recognition = new SpeechRecognition();
+                recognition.continuous = false;
+                recognition.lang = 'en-US';
+                recognition.interimResults = false;
+                recognition.maxAlternatives = 1;
+
+                recognition.onstart = () => {
+                    isListening = true;
+                    micBtnWrapper.classList.add('listening');
+                    micHint.textContent = "LISTENING...";
+                    micHint.style.color = 'var(--color-danger)';
+                    playHapticFeedback(25);
+                };
+
+                recognition.onresult = (event) => {
+                    const text = event.results[0][0].transcript;
+                    addChatBubble("user", text);
+                    handleVoiceCommand(text.toLowerCase());
+                };
+
+                recognition.onerror = (event) => {
+                    console.error("Vocal synthesis recognition error:", event.error);
+                    if (event.error === 'not-allowed') {
+                        addChatBubble("assistant", "Microphone access denied. Please enable mic permissions in your browser settings.");
+                        speakTextLocal("Microphone access denied");
+                    } else {
+                        addChatBubble("assistant", "I couldn't hear that clearly. Can you try again?");
+                        speakTextLocal("I couldn't hear that clearly");
+                    }
+                    stopListening();
+                };
+
+                recognition.onend = () => {
+                    stopListening();
+                };
+
+                micBtn.addEventListener('click', () => {
+                    if (isListening) {
+                        recognition.stop();
+                    } else {
+                        try {
+                            recognition.start();
+                        } catch(e) {
+                            console.error(e);
+                        }
+                    }
+                });
+            } else {
+                // Feature detection warning
+                micBtn.style.opacity = '0.5';
+                micBtn.style.cursor = 'not-allowed';
+                micHint.textContent = "VOICE NOT SUPPORTED";
+                micHint.style.color = 'var(--color-text-secondary)';
+                
+                micBtn.addEventListener('click', () => {
+                    showCustomModal("Unsupported Browser", "Speech Recognition is not supported by your current browser. Try accessing the application via Google Chrome or Safari.");
+                });
+            }
+        }
+
+        function stopListening() {
+            isListening = false;
+            if (micBtnWrapper) micBtnWrapper.classList.remove('listening');
+            if (micHint) {
+                micHint.textContent = "TAP TO SPEAK";
+                micHint.style.color = 'var(--color-text-secondary)';
+            }
+            playHapticFeedback(15);
+        }
+
+        // Voice Command Interpreter Engine
+        function handleVoiceCommand(cmd) {
+            console.log("Vocal Command:", cmd);
+            
+            // 1. HELP
+            if (cmd.includes('help') || cmd.includes('what can i say') || cmd.includes('options')) {
+                const text = "You can speak commands such as: 'What is in front of me?', 'Is there a chair?', 'Start scanning', or 'Stop scanning'.";
+                addChatBubble("assistant", text);
+                speakTextLocal(text);
+            }
+            // 2. SCANNING CONTROLS - START
+            else if (cmd.includes('start scan') || cmd.includes('start detection') || cmd.includes('activate scanning')) {
+                if (isDetecting) {
+                    const text = "Scanning is already running.";
+                    addChatBubble("assistant", text);
+                    speakTextLocal(text);
+                } else {
+                    const text = "Activating object scan now.";
+                    addChatBubble("assistant", text);
+                    speakTextLocal(text);
+                    setTimeout(startDetection, 800);
+                }
+            }
+            // 3. SCANNING CONTROLS - STOP
+            else if (cmd.includes('stop scan') || cmd.includes('stop detection') || cmd.includes('turn off scan')) {
+                if (!isDetecting) {
+                    const text = "Scanning is already stopped.";
+                    addChatBubble("assistant", text);
+                    speakTextLocal(text);
+                } else {
+                    const text = "Deactivating scan.";
+                    addChatBubble("assistant", text);
+                    speakTextLocal(text);
+                    setTimeout(stopDetection, 800);
+                }
+            }
+            // 4. WHATS IN FRONT
+            else if (cmd.includes('what is in front') || cmd.includes('what\'s in front') || cmd.includes('what do you see') || cmd.includes('identify')) {
+                if (!isDetecting) {
+                    const text = "Scanning is currently stopped. Please say start scan first.";
+                    addChatBubble("assistant", text);
+                    speakTextLocal(text);
+                    return;
+                }
+                
+                const obj = closestObject.textContent;
+                const dist = closestDistance.textContent;
+                const dir = closestDirectionBlock.style.display !== 'none' ? closestDirection.textContent : 'Center';
+                
+                if (obj === 'None' || obj === 'Stopped') {
+                    const text = "I don't see any catalogued objects close to you right now.";
+                    addChatBubble("assistant", text);
+                    speakTextLocal(text);
+                } else {
+                    let dirWord = "in front of you";
+                    if (dir === 'Left') dirWord = "on your left";
+                    if (dir === 'Right') dirWord = "on your right";
+                    
+                    const text = `Directly ${dirWord}, I see a ${obj} at a distance of ${dist}.`;
+                    addChatBubble("assistant", text);
+                    speakTextLocal(text);
+                }
+            }
+            // 5. QUERY FOR SPECIFIC OBJECTS ("is there a chair")
+            else if (cmd.includes('is there a') || cmd.includes('find a') || cmd.includes('search for')) {
+                // Extract class name
+                let objectName = '';
+                if (cmd.includes('is there a ')) objectName = cmd.split('is there a ')[1];
+                else if (cmd.includes('find a ')) objectName = cmd.split('find a ')[1];
+                else if (cmd.includes('search for ')) objectName = cmd.split('search for ')[1];
+                
+                objectName = objectName.trim().replace('?', '');
+                
+                if (!objectName) {
+                    const text = "I couldn't extract the object name. Can you try again?";
+                    addChatBubble("assistant", text);
+                    speakTextLocal(text);
+                    return;
+                }
+
+                if (!isDetecting) {
+                    const text = `Scanner is stopped. Please say start scan to search for a ${objectName}.`;
+                    addChatBubble("assistant", text);
+                    speakTextLocal(text);
+                    return;
+                }
+
+                // Check current closest
+                const currObj = closestObject.textContent.toLowerCase();
+                const currDist = closestDistance.textContent;
+                const currDir = closestDirection.textContent;
+
+                if (currObj.includes(objectName)) {
+                    let dirWord = "in front of you";
+                    if (currDir === 'Left') dirWord = "on your left";
+                    if (currDir === 'Right') dirWord = "on your right";
+                    
+                    const text = `Yes, there is a ${currObj} ${dirWord} at ${currDist}.`;
+                    addChatBubble("assistant", text);
+                    speakTextLocal(text);
+                } else {
+                    // Check recent history
+                    const found = detectionHistory.find(item => item.className.toLowerCase().includes(objectName));
+                    if (found) {
+                        let dirWord = "in front";
+                        if (found.direction === 'Left') dirWord = "on your left";
+                        if (found.direction === 'Right') dirWord = "on your right";
+                        
+                        const text = `I recently logged a ${found.className} ${dirWord} at ${found.distance} about a minute ago.`;
+                        addChatBubble("assistant", text);
+                        speakTextLocal(text);
+                    } else {
+                        const text = `No, I do not detect any ${objectName} in the area. Make sure to rotate slowly.`;
+                        addChatBubble("assistant", text);
+                        speakTextLocal(text);
+                    }
+                }
+            }
+            // 6. DISTANCE QUERY
+            else if (cmd.includes('how far') || cmd.includes('distance')) {
+                if (!isDetecting) {
+                    const text = "Scanner is offline.";
+                    addChatBubble("assistant", text);
+                    speakTextLocal(text);
+                    return;
+                }
+
+                const obj = closestObject.textContent;
+                const dist = closestDistance.textContent;
+                
+                if (obj === 'None' || obj === 'Stopped') {
+                    const text = "There are no close objects detected to measure.";
+                    addChatBubble("assistant", text);
+                    speakTextLocal(text);
+                } else {
+                    const text = `The ${obj} is at a distance of ${dist}.`;
+                    addChatBubble("assistant", text);
+                    speakTextLocal(text);
+                }
+            }
+            // UNKNOWN
+            else {
+                const text = "I heard you say: " + cmd + ". Sorry, I don't know how to handle that. Speak Help for commands.";
+                addChatBubble("assistant", text);
+                speakTextLocal("Sorry, I didn't get that.");
+            }
+        }
+
+        // Add a bubble to chat interface
+        function addChatBubble(sender, text) {
+            const bubble = document.createElement('div');
+            bubble.classList.add('chat-bubble', sender);
+            bubble.textContent = text;
+            chatTranscript.appendChild(bubble);
+            chatTranscript.scrollTop = chatTranscript.scrollHeight;
+        }
+
+        // --- Canvas wave visualizer loops ---
+        function drawIdleWave() {
+            if (!waveCtx || isListening) return;
+            
+            const w = waveCanvas.width;
+            const h = waveCanvas.height;
+            waveCtx.clearRect(0, 0, w, h);
+            
+            waveCtx.lineWidth = 2;
+            waveCtx.strokeStyle = 'rgba(16, 185, 129, 0.4)'; // Emerald green transparent
+            waveCtx.beginPath();
+            
+            const time = Date.now() * 0.002;
+            
+            waveCtx.moveTo(0, h / 2);
+            for (let x = 0; x < w; x++) {
+                const y = h / 2 + Math.sin(x * 0.02 + time) * 3;
+                waveCtx.lineTo(x, y);
+            }
+            waveCtx.stroke();
+            
+            requestAnimationFrame(drawIdleWave);
+        }
+
+        function drawListeningWave() {
+            if (!waveCtx || !isListening) {
+                // Drop back to idle loop
+                drawIdleWave();
+                return;
+            }
+            
+            const w = waveCanvas.width;
+            const h = waveCanvas.height;
+            waveCtx.clearRect(0, 0, w, h);
+            
+            waveCtx.lineWidth = 3;
+            waveCtx.strokeStyle = 'var(--color-accent-secondary)'; // Cyan active
+            
+            const time = Date.now() * 0.015;
+            
+            // Multiple layered waves for a cool visual effect
+            for (let layer = 0; layer < 3; layer++) {
+                waveCtx.beginPath();
+                waveCtx.strokeStyle = layer === 0 ? 'rgba(6, 182, 212, 0.8)' : layer === 1 ? 'rgba(6, 182, 212, 0.4)' : 'rgba(6, 182, 212, 0.15)';
+                waveCtx.lineWidth = layer === 0 ? 3 : 1.5;
+                
+                waveCtx.moveTo(0, h / 2);
+                const amp = 14 - layer * 4;
+                const freq = 0.04 + layer * 0.01;
+                const speed = time * (1 - layer * 0.2);
+                
+                for (let x = 0; x < w; x++) {
+                    const y = h / 2 + Math.sin(x * freq + speed) * amp;
+                    waveCtx.lineTo(x, y);
+                }
+                waveCtx.stroke();
+            }
+            
+            requestAnimationFrame(drawListeningWave);
+        }
+
+        // Trigger waves shift
+        function startWaveAnimation() {
+            drawListeningWave();
+        }
+
+        // ==========================================
+        // SYSTEM OVERLAYS & MODALS
+        // ==========================================
+        
+        function showCustomModal(title, message) {
+            const modalHtml = `
+                <div id="customModal" class="modal-backdrop">
+                    <div class="modal-content">
+                        <h3 class="modal-title">${title}</h3>
+                        <p class="modal-message">${message}</p>
+                        <button id="modalOkBtn" class="modal-btn">OK</button>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            
+            const okBtn = document.getElementById('modalOkBtn');
+            okBtn.focus();
+            
+            okBtn.addEventListener('click', () => {
+                document.getElementById('customModal').remove();
+                playHapticFeedback(15);
+            });
+        }
 
     </script>
 </body>

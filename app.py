@@ -204,12 +204,15 @@ global_detection_state = {
     "last_announcement_time": 0,
     "last_announced_object": None,
     "last_announced_distance": 0.0,
+    "last_announced_direction": None,
     "stable_object_class": None,
     "stable_object_distance": 0.0,
+    "stable_object_direction": None,
     "stability_timer_start": 0,
     "current_fps": 0,
     "current_closest_object": "None",
-    "current_closest_distance": "N/A"
+    "current_closest_distance": "N/A",
+    "current_closest_direction": "N/A"
 }
 state_lock = threading.Lock() # Lock for accessing global_detection_state
 
@@ -270,7 +273,7 @@ def generate_frames():
 
         annotated_frame = frame.copy()
 
-        closest_object_data = None  # (class_name, distance_meters)
+        closest_object_data = None  # (class_name, distance_meters, direction_simple, direction_spoken)
         min_distance = float('inf')
 
         detected_objects_info = []
@@ -291,6 +294,19 @@ def generate_frames():
                 distance_meters = None
                 distance_text = ""
 
+                # Calculate relative horizontal direction
+                frame_width = frame.shape[1] if frame.shape[1] > 0 else 640
+                center_x = (x1 + x2) / 2
+                if center_x < frame_width / 3:
+                    direction_spoken = "on your left"
+                    direction_simple = "Left"
+                elif center_x > 2 * frame_width / 3:
+                    direction_spoken = "on your right"
+                    direction_simple = "Right"
+                else:
+                    direction_spoken = "in the center"
+                    direction_simple = "Center"
+
                 if class_name in KNOWN_OBJECT_DIMENSIONS and class_name in KNOWN_DIMENSION_TYPE:
                     known_dimension_real_world = KNOWN_OBJECT_DIMENSIONS[class_name]
                     dimension_type_for_calc = KNOWN_DIMENSION_TYPE[class_name]
@@ -307,14 +323,14 @@ def generate_frames():
                             distance_text = f"Dist: {distance_meters:.2f}m"
                             if distance_meters < min_distance:
                                 min_distance = distance_meters
-                                closest_object_data = (class_name, distance_meters)
+                                closest_object_data = (class_name, distance_meters, direction_simple, direction_spoken)
                         else:
                             distance_text = f"Dist: {distance_meters:.2f}m (Out of Range)"
                     else:
                         distance_text = "Dist: N/A"
 
-                label = f"{class_name} {conf:.2f} {distance_text}"
-                color = (0, 255, 0)  # Green color for bounding box
+                label = f"{class_name} {conf:.2f} {distance_text} ({direction_simple})"
+                color = (16, 185, 129)  # Emerald green for bounding box
 
                 cv2.rectangle(annotated_frame, (x1, y1), (x2, y2), color, 2)
                 cv2.putText(annotated_frame, label, (x1, y1 - 10),
@@ -322,7 +338,8 @@ def generate_frames():
 
                 detected_objects_info.append({
                     "class": class_name,
-                    "distance": f"{distance_meters:.2f}m" if distance_meters is not None else "N/A"
+                    "distance": f"{distance_meters:.2f}m" if distance_meters is not None else "N/A",
+                    "direction": direction_simple
                 })
 
         # --- Audio Feedback Logic (Stability and Cooldown) ---
@@ -330,18 +347,21 @@ def generate_frames():
             # Update global state for UI display
             global_detection_state["current_closest_object"] = closest_object_data[0] if closest_object_data else "None"
             global_detection_state["current_closest_distance"] = f"{closest_object_data[1]:.2f}m" if closest_object_data else "N/A"
+            global_detection_state["current_closest_direction"] = closest_object_data[2] if closest_object_data else "N/A"
 
             if closest_object_data:
-                current_closest_class, current_closest_distance = closest_object_data
+                current_closest_class, current_closest_distance, current_closest_dir_simple, current_closest_dir_spoken = closest_object_data
 
                 object_changed = (current_closest_class != global_detection_state["stable_object_class"])
                 distance_significantly_changed = (
                         abs(current_closest_distance - global_detection_state["stable_object_distance"]) > DISTANCE_CHANGE_THRESHOLD_METERS
                 )
+                direction_changed = (current_closest_dir_simple != global_detection_state.get("stable_object_direction"))
 
-                if object_changed or distance_significantly_changed:
+                if object_changed or distance_significantly_changed or direction_changed:
                     global_detection_state["stable_object_class"] = current_closest_class
                     global_detection_state["stable_object_distance"] = current_closest_distance
+                    global_detection_state["stable_object_direction"] = current_closest_dir_simple
                     global_detection_state["stability_timer_start"] = current_time
                 else:
                     if (current_time - global_detection_state["stability_timer_start"] >= STABILITY_DURATION_SECONDS and
@@ -349,9 +369,10 @@ def generate_frames():
 
                         if MIN_ANNOUNCE_DISTANCE <= current_closest_distance <= MAX_ANNOUNCE_DISTANCE:
                             if (current_closest_class != global_detection_state["last_announced_object"] or
-                                    abs(current_closest_distance - global_detection_state["last_announced_distance"]) > DISTANCE_CHANGE_THRESHOLD_METERS * 2):
+                                    abs(current_closest_distance - global_detection_state["last_announced_distance"]) > DISTANCE_CHANGE_THRESHOLD_METERS * 2 or
+                                    current_closest_dir_simple != global_detection_state.get("last_announced_direction")):
                                 announcement_text = (
-                                    f"In front of you, there is a {current_closest_class} "
+                                    f"In front of you, there is a {current_closest_class} {current_closest_dir_spoken} "
                                     f"at {current_closest_distance:.2f} meters."
                                 )
 
@@ -366,13 +387,15 @@ def generate_frames():
                                 global_detection_state["last_announcement_time"] = current_time
                                 global_detection_state["last_announced_object"] = current_closest_class
                                 global_detection_state["last_announced_distance"] = current_closest_distance
+                                global_detection_state["last_announced_direction"] = current_closest_dir_simple
 
             else:
                 global_detection_state["stable_object_class"] = None
                 global_detection_state["stable_object_distance"] = 0.0
-                global_detection_state["stability_timer_start"] = current_time
+                global_detection_state["stable_object_direction"] = None
                 global_detection_state["last_announced_object"] = None
                 global_detection_state["last_announced_distance"] = 0.0
+                global_detection_state["last_announced_direction"] = None
                 global_detection_state["last_announcement_time"] = 0
 
         # Display FPS
@@ -419,7 +442,8 @@ def get_status():
         return jsonify({
             "fps": global_detection_state["current_fps"],
             "closest_object": global_detection_state["current_closest_object"],
-            "closest_distance": global_detection_state["current_closest_distance"]
+            "closest_distance": global_detection_state["current_closest_distance"],
+            "closest_direction": global_detection_state.get("current_closest_direction", "N/A")
         })
 
 # --- Main execution block ---
